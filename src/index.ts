@@ -1,44 +1,52 @@
 import { PLAYER } from './player';
 import { RoundState } from './round';
-import { autorun } from 'mobx';
 import { DECISION_TYPE, IDecision } from './decision';
 import { THEATER } from './theater';
 import { ITheaterBoardState } from 'board';
+import { autorun } from 'mobx';
 
-const roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
+for (let i = 0; i < 1000; i += 1) {
+  const roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
 
-autorun(() => {
-  console.log('activePlayer: ', roundState.activePlayer);
-  console.log(
-    'anticipatedMovesStack: ',
-    roundState.anticipatedDecisionsStack(roundState.moveState.numMoves)
-  );
-  console.log(
-    'currentHandP1',
-    roundState.currentHandP1.map(
-      card => `${card.theater}-${card.name}-${card.rank}`
-    )
-  );
-  console.log(
-    'currentHandP2',
-    roundState.currentHandP2.map(
-      card => `${card.theater}-${card.name}-${card.rank}`
-    )
-  );
-  console.log('boardState:');
-  console.log(JSON.stringify(roundState.simpleBoardState, undefined, 2));
-  console.log('victor', roundState.victor);
-  console.log('----');
-});
+  autorun(reaction => {
+    //   console.log('activePlayer: ', roundState.activePlayer);
+    //   console.log(
+    //     'anticipatedMovesStack: ',
+    //     roundState.anticipatedDecisionsStack(roundState.moveState.numMoves)
+    //   );
+    //   console.log(
+    //     'currentHandP1',
+    //     roundState.currentHandP1.map(
+    //       card => `${card.theater}-${card.name}-${card.rank}`
+    //     )
+    //   );
+    //   console.log(
+    //     'currentHandP2',
+    //     roundState.currentHandP2.map(
+    //       card => `${card.theater}-${card.name}-${card.rank}`
+    //     )
+    //   );
+    //   console.log('boardState:');
+    //   console.log(JSON.stringify(roundState.simpleBoardState, undefined, 2));
+    //   console.log('victor', roundState.victor);
+    //   console.log('----');
 
-while (!roundState.complete) {
-  if (Math.random() < 0.05) {
-    roundState.surrender();
-  } else {
+    if (roundState.complete) {
+      reaction.dispose();
+      return;
+    }
+
     const anticipatedDecisionsStack = roundState.anticipatedDecisionsStack(
       roundState.moveState.numMoves
     );
     const boardState = roundState.simpleBoardState;
+    const hand = roundState.currentHand;
+
+    if (Math.random() < 0.1) {
+      roundState.surrender();
+      return;
+    }
+
     const playerTheaters = (Object.entries(boardState) as Array<
       [THEATER, ITheaterBoardState<string[]>]
     >)
@@ -90,13 +98,9 @@ while (!roundState.complete) {
           }
         })(),
       });
-      continue;
+      return;
     }
 
-    const hand =
-      roundState.activePlayer === PLAYER.ONE
-        ? roundState.currentHandP1
-        : roundState.currentHandP2;
     roundState.playCard(hand[0].getMove());
-  }
+  });
 }

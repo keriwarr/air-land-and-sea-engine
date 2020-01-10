@@ -79,17 +79,16 @@ export class RoundState {
             const { decision } = move;
             switch (decision.type) {
               case DECISION_TYPE.REDEPLOY_DECISION: {
-                if (!decision.made) {
-                  break;
-                }
                 const previousBoardState = this.momentaryBoardState(
                   moveCount - 1
                 );
-                draftState.push(
+                const card =
                   previousBoardState[decision.made.theater][player][
                     decision.made.indexFromTop
-                  ].card
-                );
+                  ];
+                if (card && !card.faceUp) {
+                  draftState.push(card.card);
+                }
                 break;
               }
               case DECISION_TYPE.FLIP_DECISION:
@@ -124,6 +123,13 @@ export class RoundState {
   @computed
   get currentHandP2() {
     return this.momentaryHand(this.moveState.numMoves, PLAYER.TWO);
+  }
+
+  @computed
+  get currentHand() {
+    return this.activePlayer === PLAYER.ONE
+      ? this.currentHandP1
+      : this.currentHandP2;
   }
 
   readonly momentaryBoardState = computedFn(
@@ -163,9 +169,6 @@ export class RoundState {
                 break;
               }
               case DECISION_TYPE.REDEPLOY_DECISION: {
-                if (!decision.made) {
-                  break;
-                }
                 draftState[decision.made.theater][player].splice(
                   decision.made.indexFromTop,
                   1
@@ -598,7 +601,14 @@ export class RoundState {
         return previousState;
       }
 
-      if (!move.decision.made) {
+      const previousBoardState = this.momentaryBoardState(moveCount - 1);
+
+      const redeployedCard =
+        previousBoardState[move.decision.made.theater][playerForMove][
+          move.decision.made.indexFromTop
+        ];
+
+      if (!redeployedCard || redeployedCard.faceUp) {
         return previousState;
       }
 
@@ -615,10 +625,7 @@ export class RoundState {
   get complete() {
     return (
       (this.currentHandP1.length === 0 && this.currentHandP2.length === 0) ||
-      !!(
-        this.moveState.mostRecentMove &&
-        this.moveState.mostRecentMove.type === MOVE_TYPE.SURRENDER
-      )
+      !!(this.moveState.mostRecentMove?.type === MOVE_TYPE.SURRENDER)
     );
   }
 
@@ -628,10 +635,7 @@ export class RoundState {
       return null;
     }
 
-    if (
-      this.moveState.mostRecentMove &&
-      this.moveState.mostRecentMove.type === MOVE_TYPE.SURRENDER
-    ) {
+    if (this.moveState.mostRecentMove?.type === MOVE_TYPE.SURRENDER) {
       // this is janky
       return this.activePlayer;
     }
