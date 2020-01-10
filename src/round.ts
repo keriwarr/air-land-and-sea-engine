@@ -43,8 +43,15 @@ export class RoundState {
   }
 
   @computed
-  get reinforcementCard() {
-    return this.deck.cards[12];
+  private get startingDeck() {
+    return [
+      this.deck.cards[12],
+      this.deck.cards[13],
+      this.deck.cards[14],
+      this.deck.cards[15],
+      this.deck.cards[16],
+      this.deck.cards[17],
+    ];
   }
 
   readonly momentaryHand = computedFn(
@@ -132,6 +139,29 @@ export class RoundState {
       : this.currentHandP2;
   }
 
+  readonly momentaryDeck = computedFn((moveCount: number): Readonly<Card>[] => {
+    if (moveCount === 0) {
+      return this.startingDeck;
+    }
+
+    const move = this.moveState.getMove(moveCount - 1);
+    const previousState = this.momentaryDeck(moveCount - 1);
+
+    if (move === null || move.type !== MOVE_TYPE.DECISION) {
+      return previousState;
+    }
+
+    if (move.decision.type !== DECISION_TYPE.REINFORCE_DECISION) {
+      return previousState;
+    }
+
+    if (!move.decision.made) {
+      return previousState;
+    }
+
+    return previousState.slice(1);
+  });
+
   readonly momentaryBoardState = computedFn(
     (moveCount: number): IBoardState => {
       if (moveCount === 0) {
@@ -179,8 +209,9 @@ export class RoundState {
                 if (!decision.made) {
                   break;
                 }
+                const deck = this.momentaryDeck(moveCount);
                 draftState[decision.made.theater][player].unshift({
-                  card: this.reinforcementCard,
+                  card: deck[0],
                   faceUp: false,
                 });
                 break;

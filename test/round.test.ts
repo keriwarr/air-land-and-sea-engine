@@ -298,6 +298,8 @@ describe('RoundState', () => {
       it.todo('allows choosing not to reinforce');
 
       it.todo('must add the card in an adjacent theater');
+
+      it.todo('can be triggered multiple times');
     });
 
     describe(CARD_TYPE_KEY.AMBUSH, () => {
@@ -366,6 +368,8 @@ describe('RoundState', () => {
       it.todo('permits choosing not to transport');
 
       it.todo('can transport itself');
+
+      it.todo('can be triggered multiple times');
     });
 
     describe(CARD_TYPE_KEY.ESCALATION, () => {
@@ -463,5 +467,9 @@ describe('RoundState', () => {
 
   describe('Deck', () => {
     it.todo("knows which cards haven't been seen by either player");
+
+    it.todo('start with six cards in it');
+
+    it.todo('loses a card each time a reinforce decision is made');
   });
 });
