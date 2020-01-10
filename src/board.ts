@@ -26,5 +26,4 @@ const getInitialTheaterBoardState = () => ({
 
 export const getInitialBoardState = (
   theaterPermutation: [THEATER, THEATER, THEATER]
-): IBoardState =>
-  mapToObject(theaterPermutation, getInitialTheaterBoardState);
+): IBoardState => mapToObject(theaterPermutation, getInitialTheaterBoardState);

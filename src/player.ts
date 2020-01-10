@@ -1,6 +1,6 @@
 export enum PLAYER {
-  ONE = "ONE",
-  TWO = "TWO",
+  ONE = 'ONE',
+  TWO = 'TWO',
 }
 
 export const getOtherPlayer = (player: PLAYER) =>

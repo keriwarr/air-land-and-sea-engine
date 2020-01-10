@@ -13,8 +13,7 @@ interface IGenericDecision<T extends DECISION_TYPE = DECISION_TYPE> {
   type: T;
 }
 
-interface IFlipDecision
-  extends IGenericDecision<DECISION_TYPE.FLIP_DECISION> {
+interface IFlipDecision extends IGenericDecision<DECISION_TYPE.FLIP_DECISION> {
   targetedPlayer: PLAYER;
   theater: THEATER;
 }

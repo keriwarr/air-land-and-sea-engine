@@ -296,43 +296,45 @@ export class RoundState {
     return startingPoint;
   });
 
-  readonly momentaryTheaterStrengths = computedFn((moveCount: number): IBoardState<number> => {
-    const effectiveStrengths = this.momentaryEffectiveStrengths(moveCount);
-    const iterableTheaters = this.momentaryIterableTheaters(moveCount);
+  readonly momentaryTheaterStrengths = computedFn(
+    (moveCount: number): IBoardState<number> => {
+      const effectiveStrengths = this.momentaryEffectiveStrengths(moveCount);
+      const iterableTheaters = this.momentaryIterableTheaters(moveCount);
 
-    const supportingTheaters = iterableTheaters.filter(
-      ({ cards }) =>
-        !!cards.find(
-          ({ card, faceUp }) =>
-            card.cardTypeKey === CARD_TYPE_KEY.SUPPORT && faceUp
-        )
-    );
-
-    const boardState = this.momentaryBoardState(moveCount);
-
-    return produce(boardState, draftState => {
-      const theaterStrengths = mapValues(draftState, theaterBoardState => {
-        return mapValues(theaterBoardState, playerBoardState => {
-          return playerBoardState.reduce(
-            (total, { card }) => total + effectiveStrengths[card.id],
-            0
-          );
-        });
-      });
-
-      supportingTheaters.forEach(
-        ({ theater: supportingTheater, player: supportingPlayer }) => {
-          this.getAdjacentTheaters(supportingTheater).forEach(
-            supportedTheaterKey => {
-              theaterStrengths[supportedTheaterKey][supportingPlayer] += 3;
-            }
-          );
-        }
+      const supportingTheaters = iterableTheaters.filter(
+        ({ cards }) =>
+          !!cards.find(
+            ({ card, faceUp }) =>
+              card.cardTypeKey === CARD_TYPE_KEY.SUPPORT && faceUp
+          )
       );
 
-      return theaterStrengths;
-    });
-  });
+      const boardState = this.momentaryBoardState(moveCount);
+
+      return produce(boardState, draftState => {
+        const theaterStrengths = mapValues(draftState, theaterBoardState => {
+          return mapValues(theaterBoardState, playerBoardState => {
+            return playerBoardState.reduce(
+              (total, { card }) => total + effectiveStrengths[card.id],
+              0
+            );
+          });
+        });
+
+        supportingTheaters.forEach(
+          ({ theater: supportingTheater, player: supportingPlayer }) => {
+            this.getAdjacentTheaters(supportingTheater).forEach(
+              supportedTheaterKey => {
+                theaterStrengths[supportedTheaterKey][supportingPlayer] += 3;
+              }
+            );
+          }
+        );
+
+        return theaterStrengths;
+      });
+    }
+  );
 
   @computed
   get currentTheaterStrengths() {

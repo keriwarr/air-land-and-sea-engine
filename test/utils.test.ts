@@ -72,11 +72,32 @@ describe('mapValues', () => {
 
 describe('shuffle', () => {
   it('shuffles an array', () => {
-    const array = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+    const array = [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+    ];
     const arrayCopy = [...array];
     shuffle(arrayCopy);
     expect(array.length).toBe(arrayCopy.length);
     expect(arrayCopy).not.toEqual(array);
     expect(arrayCopy.sort()).toEqual(array.sort());
-  })
-})
+  });
+});

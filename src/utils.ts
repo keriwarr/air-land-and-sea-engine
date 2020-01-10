@@ -14,13 +14,10 @@ export const groupBy = <T, S extends number | string | symbol>(
   array: T[],
   iteratee: (elem: T) => S
 ): { [K in S]: T[] } =>
-  array.reduce(
-    (agg, elem) => {
-      const key = iteratee(elem);
-      return { ...agg, [key]: [...(agg[key] ? agg[key] : []), elem] };
-    },
-    {} as { [K in S]: T[] }
-  );
+  array.reduce((agg, elem) => {
+    const key = iteratee(elem);
+    return { ...agg, [key]: [...(agg[key] ? agg[key] : []), elem] };
+  }, {} as { [K in S]: T[] });
 
 export const mapValues = <T, S extends number | string | symbol, U>(
   obj: { [K in S]: T },
@@ -33,7 +30,7 @@ export const mapValues = <T, S extends number | string | symbol, U>(
     }))
   );
 
-export const enumValues = <T extends object>(enumObject: T): (T[keyof T])[] =>
+export const enumValues = <T extends object>(enumObject: T): T[keyof T][] =>
   Object.values(enumObject);
 
 /**

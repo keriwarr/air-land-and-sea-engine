@@ -100,9 +100,7 @@ export class Card {
 
     if (cardType.theater && cardType.theater !== card.theater) {
       throw new Error(
-        `Card type ${cardType.key} can not be instantiated as card in theater ${
-          card.theater
-        }`
+        `Card type ${cardType.key} can not be instantiated as card in theater ${card.theater}`
       );
     }
 
