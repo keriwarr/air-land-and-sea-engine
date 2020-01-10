@@ -14,7 +14,9 @@
       "program": "${workspaceFolder}/dist/index.js",
       "outFiles": [
         "${workspaceFolder}/**/*.js"
-      ]
+      ],
+      "sourceMaps": true,
+      "smartStep": true
     }
   ]
 }
