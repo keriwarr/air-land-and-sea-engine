@@ -216,13 +216,97 @@ describe('RoundState', () => {
     });
 
     describe(CARD_TYPE_KEY.AIR_DROP, () => {
-      it.todo('permits playing in to non-matching theaters');
+      it('permits playing in to non-matching theaters', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AIR_DROP }).getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+              .getMove({ theater: THEATER.LAND }),
+            { dryRun: true }
+          );
+        }).not.toThrow();
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+              .getMove({ theater: THEATER.SEA }),
+            { dryRun: true }
+          );
+        }).not.toThrow();
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+              .getMove({ theater: THEATER.AIR }),
+            { dryRun: true }
+          );
+        }).not.toThrow();
+      });
 
       it.todo("doesn't override blockade");
 
       it.todo("doesn't override containment");
 
-      it.todo('can be cancelled by flipping');
+      it('can be cancelled by flipping', () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.AIR_DROP })
+            .getMove({ theater: THEATER.AIR })
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.AMBUSH, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.AIR,
+          },
+        });
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+              .getMove({ theater: THEATER.SEA }),
+            { dryRun: true }
+          );
+        }).toThrow();
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
+              .getMove({ theater: THEATER.AIR }),
+            { dryRun: true }
+          );
+        }).toThrow();
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+              .getMove({ theater: THEATER.LAND }),
+            { dryRun: true }
+          );
+        }).toThrow();
+      });
 
       it.todo("doesn't prevent playing in matching theaters");
     });
@@ -506,5 +590,11 @@ describe('RoundState', () => {
     it.todo('start with six cards in it');
 
     it.todo('loses a card each time a reinforce decision is made');
+  });
+
+  describe('Testing Features', () => {
+    describe('playMove:dryRun', () => {});
+
+    describe('opts.disableHandContainsCheck', () => {});
   });
 });

@@ -167,6 +167,7 @@ export class Deck {
     this.byId = keyBy(this.cards, card => card.id);
   }
 
+  // TODO memoize this
   public readonly find = ({
     theater,
     rank,

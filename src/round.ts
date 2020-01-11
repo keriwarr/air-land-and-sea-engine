@@ -20,6 +20,11 @@ export class RoundState {
   ) {}
 
   @computed
+  get numMoves() {
+    return this.moveState.numMoves;
+  }
+
+  @computed
   private get startingHandP1() {
     return [
       this.deck.cards[0],
@@ -90,12 +95,12 @@ export class RoundState {
                 const previousBoardState = this.momentaryBoardState(
                   moveCount - 1
                 );
-                const card =
+                const cardState =
                   previousBoardState[decision.made.theater][player][
                     decision.made.indexFromTop
                   ];
-                if (card && !card.faceUp) {
-                  draftState.push(card.card);
+                if (cardState && !cardState.faceUp) {
+                  draftState.push(cardState.card);
                 }
                 break;
               }
@@ -125,12 +130,12 @@ export class RoundState {
 
   @computed
   get currentHandP1() {
-    return this.momentaryHand(this.moveState.numMoves, PLAYER.ONE);
+    return this.momentaryHand(this.numMoves, PLAYER.ONE);
   }
 
   @computed
   get currentHandP2() {
-    return this.momentaryHand(this.moveState.numMoves, PLAYER.TWO);
+    return this.momentaryHand(this.numMoves, PLAYER.TWO);
   }
 
   @computed
@@ -373,7 +378,7 @@ export class RoundState {
 
   @computed
   get currentTheaterStrengths() {
-    return this.momentaryTheaterStrengths(this.moveState.numMoves);
+    return this.momentaryTheaterStrengths(this.numMoves);
   }
 
   @computed
@@ -409,7 +414,7 @@ export class RoundState {
 
   @computed
   public get boardState() {
-    return this.momentaryBoardState(this.moveState.numMoves);
+    return this.momentaryBoardState(this.numMoves);
   }
 
   // mostly just for testing?
@@ -538,13 +543,13 @@ export class RoundState {
               const previousBoardState = this.momentaryBoardState(
                 moveCount - 1
               );
-              const flippedCard =
+              const flippedCardState =
                 previousBoardState[move.decision.theater][
                   move.decision.targetedPlayer
                 ][0];
-              if (flippedCard && !flippedCard.faceUp) {
+              if (flippedCardState && !flippedCardState.faceUp) {
                 getAnticipatedDecisions(
-                  flippedCard.card.cardTypeKey,
+                  flippedCardState.card.cardTypeKey,
                   move.decision.targetedPlayer
                 ).forEach(anticipatedDecision => {
                   draftState.push(anticipatedDecision);
@@ -635,12 +640,12 @@ export class RoundState {
 
       const previousBoardState = this.momentaryBoardState(moveCount - 1);
 
-      const redeployedCard =
+      const cardState =
         previousBoardState[move.decision.made.theater][playerForMove][
           move.decision.made.indexFromTop
         ];
 
-      if (!redeployedCard || redeployedCard.faceUp) {
+      if (!cardState || cardState.faceUp) {
         return previousState;
       }
 
@@ -650,8 +655,131 @@ export class RoundState {
 
   @computed
   get activePlayer() {
-    return this.playerForMove(this.moveState.numMoves);
+    return this.playerForMove(this.numMoves);
   }
+
+  readonly momentaryCardFaceUpMap = computedFn(
+    (moveCount: number): Partial<{ [cardId: number]: boolean }> => {
+      if (moveCount === 0) {
+        return {};
+      }
+
+      const move = this.moveState.getMove(moveCount - 1);
+      const player = this.playerForMove(moveCount - 1);
+      const previousState = this.momentaryCardFaceUpMap(moveCount - 1);
+
+      if (move === null || move.type === MOVE_TYPE.SURRENDER) {
+        return previousState;
+      }
+
+      return produce(previousState, draftState => {
+        switch (move.type) {
+          case MOVE_TYPE.CARD: {
+            draftState[move.id] = move.faceUp;
+            break;
+          }
+          case MOVE_TYPE.DECISION: {
+            const { decision } = move;
+            switch (decision.type) {
+              case DECISION_TYPE.FLIP_DECISION: {
+                const previousBoardState = this.momentaryBoardState(
+                  moveCount - 1
+                );
+                const cardState =
+                  previousBoardState[decision.theater][
+                    decision.targetedPlayer
+                  ][0];
+                if (cardState) {
+                  draftState[cardState.card.id] = !cardState.faceUp;
+                }
+                break;
+              }
+              case DECISION_TYPE.REDEPLOY_DECISION: {
+                const previousBoardState = this.momentaryBoardState(
+                  moveCount - 1
+                );
+                const cardState =
+                  previousBoardState[decision.made.theater][player][
+                    decision.made.indexFromTop
+                  ];
+                if (cardState) {
+                  delete draftState[cardState.card.id];
+                }
+                break;
+              }
+              case DECISION_TYPE.REINFORCE_DECISION: {
+                if (!decision.made) {
+                  break;
+                }
+                const deck = this.momentaryDeck(moveCount);
+                draftState[deck[0].id] = false;
+                break;
+              }
+              case DECISION_TYPE.TRANSPORT_DECISION:
+                break;
+              default:
+                exhaustiveSwitch({
+                  switchValue: decision,
+                  errorMessage: `Unrecognized move: ${JSON.stringify(
+                    move.decision
+                  )}`,
+                });
+            }
+            break;
+          }
+          default:
+            exhaustiveSwitch({
+              switchValue: move,
+              errorMessage: `Unrecognized move: ${JSON.stringify(move)}`,
+            });
+        }
+      });
+    }
+  );
+
+  readonly momentaryCardFaceUp = computedFn(
+    (moveCount: number, cardId: number) => {
+      return this.momentaryCardFaceUpMap(moveCount)[cardId];
+    }
+  );
+
+  @computed
+  get cardFaceUpMap() {
+    return this.momentaryCardFaceUpMap(this.numMoves);
+  }
+
+  readonly cardFaceUp = computedFn((cardId: number) => {
+    return this.momentaryCardFaceUp(this.numMoves, cardId);
+  });
+
+  readonly momentaryLastCardForPlayer = computedFn(
+    (moveCount: number, player: PLAYER): number | null => {
+      if (moveCount === 0) {
+        return null;
+      }
+
+      const move = this.moveState.getMove(moveCount - 1);
+      const playerForMove = this.playerForMove(moveCount - 1);
+      const previousState = this.momentaryLastCardForPlayer(
+        moveCount - 1,
+        player
+      );
+
+      if (move === null || move.type !== MOVE_TYPE.CARD) {
+        return previousState;
+      }
+
+      if (playerForMove !== player) {
+        return previousState;
+      }
+
+      return move.id;
+    }
+  );
+
+  readonly lastCardForPlayer = computedFn((player: PLAYER) => {
+    return this.momentaryLastCardForPlayer(this.numMoves, player);
+  });
 
   @computed
   get complete() {
@@ -672,23 +800,22 @@ export class RoundState {
       return this.activePlayer;
     }
 
-    return this.momentaryTheatersControlled(
-      this.moveState.numMoves,
-      PLAYER.ONE
-    ) >= 2
+    return this.momentaryTheatersControlled(this.numMoves, PLAYER.ONE) >= 2
       ? PLAYER.ONE
       : PLAYER.TWO;
   }
 
   @action
-  readonly playMove = (move: IMove) => {
+  readonly playMove = (move: IMove, opts: { dryRun?: boolean } = {}) => {
     if (this.complete) {
       throw new Error('Can not play move: game is complete');
     }
 
     // TODO validation
 
-    this.moveState.pushMove(move);
+    if (!opts.dryRun) {
+      this.moveState.pushMove(move);
+    }
   };
 
   @action
@@ -697,7 +824,10 @@ export class RoundState {
   };
 
   @action
-  readonly playCard = (move: Omit<ICardMove, 'type'>) => {
+  readonly playCard = (
+    move: Omit<ICardMove, 'type'>,
+    opts: { dryRun?: boolean } = {}
+  ) => {
     const hand = this.currentHand;
 
     if (
@@ -707,7 +837,21 @@ export class RoundState {
       throw new Error('Played card was not found in active players hand');
     }
 
-    this.playMove({ type: MOVE_TYPE.CARD, ...move });
+    const lastPlayedCardId = this.lastCardForPlayer(this.activePlayer);
+    const airDropInEffect =
+      lastPlayedCardId !== null &&
+      this.deck.byId[lastPlayedCardId].cardTypeKey === CARD_TYPE_KEY.AIR_DROP &&
+      this.cardFaceUp(lastPlayedCardId);
+
+    if (
+      move.faceUp &&
+      move.theater !== this.deck.byId[move.id].theater &&
+      !airDropInEffect
+    ) {
+      throw new Error("Played card doesn't match the theater it was played in");
+    }
+
+    this.playMove({ type: MOVE_TYPE.CARD, ...move }, opts);
   };
 
   @action
