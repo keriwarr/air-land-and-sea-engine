@@ -597,4 +597,24 @@ describe('RoundState', () => {
 
     describe('opts.disableHandContainsCheck', () => {});
   });
+
+  describe('Status Effects', () => {
+    describe('Global Status Effects', () => {
+      it.todo('has a status effect when Containment is played');
+    });
+
+    describe('Player Status Effects', () => {
+      it.todo('has a status effect when Air Drop is played');
+
+      it.todo('has a status effect when Escalation is played');
+
+      it.todo('has a status effect when Aerodrome is played');
+    });
+
+    describe('Theater Status Effects', () => {
+      it.todo('has a status effect when Blockade is played');
+
+      it.todo('has a status effect when Support is played');
+    });
+  });
 });
