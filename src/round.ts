@@ -15,7 +15,8 @@ export class RoundState {
   readonly moveState = new MoveState();
 
   constructor(
-    private readonly theaterPermutation: [THEATER, THEATER, THEATER]
+    private readonly theaterPermutation: [THEATER, THEATER, THEATER],
+    private readonly opts: { disableHandContainsCheck?: boolean } = {}
   ) {}
 
   @computed
@@ -697,6 +698,15 @@ export class RoundState {
 
   @action
   readonly playCard = (move: Omit<ICardMove, 'type'>) => {
+    const hand = this.currentHand;
+
+    if (
+      !hand.find(card => card.id === move.id) &&
+      !this.opts.disableHandContainsCheck
+    ) {
+      throw new Error('Played card was not found in active players hand');
+    }
+
     this.playMove({ type: MOVE_TYPE.CARD, ...move });
   };
 

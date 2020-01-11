@@ -3,15 +3,16 @@ import { PLAYER } from '../src/player';
 import { DECISION_TYPE } from '../src/decision';
 import { THEATER } from '../src/theater';
 import { CARD_TYPE_KEY } from '../src/cardType';
+import { autorun } from 'mobx';
 
 describe('RoundState', () => {
-  let roundState: RoundState;
-
-  beforeEach(() => {
-    roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
-  });
-
   describe('End Conditions', () => {
+    let roundState: RoundState;
+
+    beforeEach(() => {
+      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
+    });
+
     it('initially has no victor', () => {
       expect(roundState.victor).toBe(null);
       expect(roundState.complete).toBe(false);
@@ -24,9 +25,11 @@ describe('RoundState', () => {
     });
 
     it('has a different victor after a later surrender', () => {
-      roundState.playCard(
-        roundState.deck.find({ theater: THEATER.SEA, rank: 6 }).getMove()
-      );
+      autorun(reaction => {
+        roundState.playCard(roundState.currentHandP1[0].getMove());
+
+        reaction.dispose();
+      });
       roundState.surrender();
       expect(roundState.victor).toBe(PLAYER.ONE);
       expect(roundState.complete).toBe(true);
@@ -41,6 +44,14 @@ describe('RoundState', () => {
   });
 
   describe('Cards Types', () => {
+    let roundState: RoundState;
+
+    beforeEach(() => {
+      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA], {
+        disableHandContainsCheck: true,
+      });
+    });
+
     describe(CARD_TYPE_KEY.SUPPORT, () => {
       it('adds strength to the center theater', () => {
         roundState.playCard(
@@ -71,7 +82,9 @@ describe('RoundState', () => {
       });
 
       it('adds strength to the outside theaters', () => {
-        roundState = new RoundState([THEATER.LAND, THEATER.AIR, THEATER.SEA]);
+        roundState = new RoundState([THEATER.LAND, THEATER.AIR, THEATER.SEA], {
+          disableHandContainsCheck: true,
+        });
         roundState.playCard(
           roundState.deck
             .find({ type: CARD_TYPE_KEY.SUPPORT })
@@ -428,7 +441,29 @@ describe('RoundState', () => {
   });
 
   describe('Move Validation', () => {
-    it.todo("prevents playing cards that are not in the player's hand");
+    let roundState: RoundState;
+
+    beforeEach(() => {
+      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
+    });
+
+    it("prevents playing cards that are not in the player's hand", () => {
+      autorun(reaction => {
+        expect(() => {
+          roundState.playCard(roundState.currentHandP2[0].getMove());
+        }).toThrow();
+
+        reaction.dispose();
+      });
+
+      // TODO - I'd like to test this case too, but I'd need a way to
+      // conveniently play whatever decisions are necessary after playing p1's
+      // first card.
+      // roundState.playCard(roundState.currentHandP1[0].getMove());
+      // expect(() => {
+      //   roundState.playCard(roundState.currentHandP1[0].getMove());
+      // }).toThrow();
+    });
 
     it.todo('prevents playing cards face up to non-matching theaters');
 
