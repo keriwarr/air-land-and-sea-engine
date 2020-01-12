@@ -17,6 +17,24 @@
       ],
       "sourceMaps": true,
       "smartStep": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest All",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/node_modules/.bin/tsdx",
+      "outFiles": [
+        "${workspaceFolder}/**/*.js"
+      ],
+      "args": ["test", "--runInBand", "--watchAll", "--forceExit"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "disableOptimisticBPs": true,
+      "sourceMaps": true,
+      "smartStep": true
     }
   ]
 }
