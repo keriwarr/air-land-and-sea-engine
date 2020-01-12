@@ -308,11 +308,62 @@ describe('RoundState', () => {
         }).toThrow();
       });
 
-      it.todo("doesn't prevent playing in matching theaters");
+      it("doesn't prevent playing in matching theaters", () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AIR_DROP }).getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.COVER_FIRE }).getMove()
+        );
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+              .getMove({ theater: THEATER.AIR }),
+            { dryRun: true }
+          );
+        }).not.toThrow();
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
+              .getMove({ theater: THEATER.LAND }),
+            { dryRun: true }
+          );
+        }).not.toThrow();
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+              .getMove({ theater: THEATER.SEA }),
+            { dryRun: true }
+          );
+        }).not.toThrow();
+      });
     });
 
     describe(CARD_TYPE_KEY.MANEUVER, () => {
-      it.todo("can't flip over itself");
+      it("can't flip over itself", () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
+            .getMove()
+        );
+
+        expect(() => {
+          roundState.playDecision({
+            decision: {
+              type: DECISION_TYPE.FLIP_DECISION,
+              targetedPlayer: PLAYER.ONE,
+              theater: THEATER.AIR,
+            },
+          });
+        }).toThrow();
+      });
 
       it.todo("can't flip over a card in a non-adjacent theater");
 
@@ -560,6 +611,10 @@ describe('RoundState', () => {
     it.todo('prevents make a decision when none is anticipated');
 
     it.todo('prevents making a decision of the incorrect type');
+
+    it.todo(
+      'prevents making a decision of the correct type but from the incorrect player'
+    );
 
     it.todo('prevents playing cards once a player has surrendered');
   });

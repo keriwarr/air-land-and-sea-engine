@@ -6,7 +6,11 @@ import { IMove, MOVE_TYPE, MoveState, ICardMove, IDecisionMove } from './move';
 import { produce } from 'immer';
 import { PLAYER, getOtherPlayer } from './player';
 import { IBoardState, getInitialBoardState } from './board';
-import { DECISION_TYPE, getAnticipatedDecisions } from './decision';
+import {
+  DECISION_TYPE,
+  getAnticipatedDecisions,
+  IAnticipatedDecision,
+} from './decision';
 import { THEATER, THEATERS } from './theater';
 import { CARD_TYPE_KEY } from './cardType';
 
@@ -487,7 +491,9 @@ export class RoundState {
       // I should re do this my measuring how many turns each player has taken
       // so far, and comparing that to how many they should have taken w.r.t. redeploy
 
-      const anticipatedMoves = this.anticipatedDecisionsStack(moveCount);
+      const anticipatedMoves = this.momentaryAnticipatedDecisionsStack(
+        moveCount
+      );
 
       if (anticipatedMoves.length > 0) {
         return anticipatedMoves[anticipatedMoves.length - 1].player;
@@ -512,15 +518,17 @@ export class RoundState {
     }
   );
 
-  readonly anticipatedDecisionsStack = computedFn(
-    (moveCount: number): Array<{ type: DECISION_TYPE; player: PLAYER }> => {
+  readonly momentaryAnticipatedDecisionsStack = computedFn(
+    (moveCount: number): IAnticipatedDecision[] => {
       if (moveCount === 0) {
         return [];
       }
 
       const move = this.moveState.getMove(moveCount - 1);
       const player = this.playerForMove(moveCount - 1);
-      const previousState = this.anticipatedDecisionsStack(moveCount - 1);
+      const previousState = this.momentaryAnticipatedDecisionsStack(
+        moveCount - 1
+      );
 
       if (move === null) {
         return previousState;
@@ -530,11 +538,13 @@ export class RoundState {
         switch (move.type) {
           case MOVE_TYPE.CARD: {
             const card = this.deck.byId[move.id];
-            getAnticipatedDecisions(card.cardTypeKey, player).forEach(
-              anticipatedDecision => {
-                draftState.push(anticipatedDecision);
-              }
-            );
+            getAnticipatedDecisions(
+              card.cardTypeKey,
+              player,
+              moveCount - 1
+            ).forEach(anticipatedDecision => {
+              draftState.push(anticipatedDecision);
+            });
             break;
           }
           case MOVE_TYPE.DECISION: {
@@ -550,7 +560,8 @@ export class RoundState {
               if (flippedCardState && !flippedCardState.faceUp) {
                 getAnticipatedDecisions(
                   flippedCardState.card.cardTypeKey,
-                  move.decision.targetedPlayer
+                  move.decision.targetedPlayer,
+                  moveCount - 1
                 ).forEach(anticipatedDecision => {
                   draftState.push(anticipatedDecision);
                 });
@@ -571,12 +582,24 @@ export class RoundState {
     }
   );
 
+  @computed
+  get anticipatedDecisionsStack() {
+    return this.momentaryAnticipatedDecisionsStack(this.numMoves);
+  }
+
+  @computed
+  get anticipatedDecision(): IAnticipatedDecision | null {
+    return this.anticipatedDecisionsStack[0] || null;
+  }
+
   readonly lastMoveCountWithNoAnticipatedMoves = computedFn(
     (moveCount: number): number => {
       if (moveCount <= 0) {
         return 0;
       }
-      const anticipatedMoves = this.anticipatedDecisionsStack(moveCount - 1);
+      const anticipatedMoves = this.momentaryAnticipatedDecisionsStack(
+        moveCount - 1
+      );
       if (anticipatedMoves.length === 0) {
         return moveCount - 1;
       }
@@ -855,7 +878,134 @@ export class RoundState {
   };
 
   @action
-  readonly playDecision = (decision: Omit<IDecisionMove, 'type'>) => {
-    this.playMove({ type: MOVE_TYPE.DECISION, ...decision });
+  readonly playDecision = (move: Omit<IDecisionMove, 'type'>) => {
+    const anticipatedDecision = this.anticipatedDecision;
+
+    if (!anticipatedDecision) {
+      throw new Error('There is no decision currently anticipated');
+    }
+
+    if (anticipatedDecision.player !== this.activePlayer) {
+      throw new Error('A decision from the other player was anticipated');
+    }
+
+    const { decision } = move;
+
+    if (anticipatedDecision.type !== decision.type) {
+      throw new Error('This decision type was not anticipated');
+    }
+
+    const promptingMove = this.moveState.getMove(
+      anticipatedDecision.promptingMoveIndex
+    );
+
+    if (!promptingMove || promptingMove.type === MOVE_TYPE.SURRENDER) {
+      throw new Error("couldn't find valid prompting move for decision");
+    }
+
+    const promptingMoveTheater = (() => {
+      if (promptingMove.type === MOVE_TYPE.CARD) {
+        return promptingMove.theater;
+      }
+
+      if (promptingMove.decision.type === DECISION_TYPE.FLIP_DECISION) {
+        return promptingMove.decision.theater;
+      }
+
+      throw new Error('Only a flip decision can prompt another decision');
+    })();
+
+    switch (decision.type) {
+      case DECISION_TYPE.FLIP_DECISION: {
+        const promptingCardId = (() => {
+          if (promptingMove.type === MOVE_TYPE.CARD) {
+            return promptingMove.id;
+          }
+          if (promptingMove.decision.type === DECISION_TYPE.FLIP_DECISION) {
+            return this.momentaryBoardState(
+              anticipatedDecision.promptingMoveIndex + 1
+            )[promptingMove.decision.theater][
+              promptingMove.decision.targetedPlayer
+            ][0].card.id;
+          }
+
+          throw new Error('Only a flip decision can prompt another decision');
+        })();
+
+        const card = this.deck.byId[promptingCardId];
+        switch (card.cardTypeKey) {
+          case CARD_TYPE_KEY.MANEUVER: {
+            if (
+              !this.getAdjacentTheaters(promptingMoveTheater).includes(
+                decision.theater
+              )
+            ) {
+              throw new Error(
+                'Maneuver may only target cards in adjacent theaters'
+              );
+            }
+            break;
+          }
+          case CARD_TYPE_KEY.DISRUPT: {
+            if (decision.targetedPlayer !== this.activePlayer) {
+              throw new Error(
+                'Disrupt decisions must be made by each player individually'
+              );
+            }
+            break;
+          }
+        }
+        break;
+      }
+      case DECISION_TYPE.REDEPLOY_DECISION: {
+        if (!decision.made) {
+          break;
+        }
+        const redeployingCard = this.boardState[decision.made.theater][
+          this.activePlayer
+        ][decision.made.indexFromTop];
+        if (!redeployingCard) {
+          throw new Error("Couldn't find valid target for redeploy decision");
+        }
+        if (!redeployingCard.faceUp) {
+          throw new Error('Card targeted for redeploy is not face down');
+        }
+        break;
+      }
+      case DECISION_TYPE.REINFORCE_DECISION: {
+        if (!decision.made) {
+          break;
+        }
+        if (
+          !this.getAdjacentTheaters(promptingMoveTheater).includes(
+            decision.made.theater
+          )
+        ) {
+          throw new Error(
+            'Reinforcement card must be played to adjacent theater'
+          );
+        }
+        break;
+      }
+      case DECISION_TYPE.TRANSPORT_DECISION: {
+        if (!decision.made) {
+          break;
+        }
+        const card = this.boardState[decision.made.originTheater][
+          this.activePlayer
+        ][decision.made.originIndexFromTop];
+        if (!card) {
+          throw new Error("Couldn't find valid target for transport decision");
+        }
+        break;
+      }
+      default:
+        exhaustiveSwitch({
+          switchValue: decision,
+          errorMessage: `Unrecognized move: ${JSON.stringify(decision)}`,
+        });
+    }
+
+    this.playMove({ type: MOVE_TYPE.DECISION, ...move });
   };
 }

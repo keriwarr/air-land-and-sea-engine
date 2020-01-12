@@ -36,7 +36,7 @@ for (let i = 0; i < 1000; i += 1) {
       return;
     }
 
-    const anticipatedDecisionsStack = roundState.anticipatedDecisionsStack(
+    const anticipatedDecisionsStack = roundState.momentaryAnticipatedDecisionsStack(
       roundState.moveState.numMoves
     );
     const boardState = roundState.simpleBoardState;

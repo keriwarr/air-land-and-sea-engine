@@ -45,30 +45,44 @@ export type IDecision =
   | ITransportDecision
   | IRedeployDecision;
 
+export interface IAnticipatedDecision {
+  type: DECISION_TYPE;
+  player: PLAYER;
+  promptingMoveIndex: number;
+}
+
 export const getAnticipatedDecisions = (
   cardTypeKey: CARD_TYPE_KEY,
-  player: PLAYER
-): Array<{ type: DECISION_TYPE; player: PLAYER }> => {
-  switch (cardTypeKey) {
-    case CARD_TYPE_KEY.REINFORCE:
-      return [{ type: DECISION_TYPE.REINFORCE_DECISION, player }];
-    case CARD_TYPE_KEY.AMBUSH:
-      return [{ type: DECISION_TYPE.FLIP_DECISION, player }];
-    case CARD_TYPE_KEY.MANEUVER:
-      return [{ type: DECISION_TYPE.FLIP_DECISION, player }];
-    case CARD_TYPE_KEY.DISRUPT:
-      return [
-        { type: DECISION_TYPE.FLIP_DECISION, player },
-        {
-          type: DECISION_TYPE.FLIP_DECISION,
-          player: getOtherPlayer(player),
-        },
-      ];
-    case CARD_TYPE_KEY.REDEPLOY:
-      return [{ type: DECISION_TYPE.REDEPLOY_DECISION, player }];
-    case CARD_TYPE_KEY.TRANSPORT:
-      return [{ type: DECISION_TYPE.TRANSPORT_DECISION, player }];
-    default:
-      return [];
-  }
+  player: PLAYER,
+  promptingMoveIndex: number
+): IAnticipatedDecision[] => {
+  const anticipatedTypeAndPlayers = (() => {
+    switch (cardTypeKey) {
+      case CARD_TYPE_KEY.REINFORCE:
+        return [{ type: DECISION_TYPE.REINFORCE_DECISION, player }];
+      case CARD_TYPE_KEY.AMBUSH:
+        return [{ type: DECISION_TYPE.FLIP_DECISION, player }];
+      case CARD_TYPE_KEY.MANEUVER:
+        return [{ type: DECISION_TYPE.FLIP_DECISION, player }];
+      case CARD_TYPE_KEY.DISRUPT:
+        return [
+          { type: DECISION_TYPE.FLIP_DECISION, player },
+          {
+            type: DECISION_TYPE.FLIP_DECISION,
+            player: getOtherPlayer(player),
+          },
+        ];
+      case CARD_TYPE_KEY.REDEPLOY:
+        return [{ type: DECISION_TYPE.REDEPLOY_DECISION, player }];
+      case CARD_TYPE_KEY.TRANSPORT:
+        return [{ type: DECISION_TYPE.TRANSPORT_DECISION, player }];
+      default:
+        return [];
+    }
+  })();
+
+  return anticipatedTypeAndPlayers.map(typeAndPlayer => ({
+    ...typeAndPlayer,
+    promptingMoveIndex: promptingMoveIndex,
+  }));
 };
