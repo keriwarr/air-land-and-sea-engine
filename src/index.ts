@@ -5,6 +5,15 @@ import { THEATER } from './theater';
 import { ITheaterBoardState } from 'board';
 import { autorun } from 'mobx';
 
+// if (__DEV__) {
+//   configure({
+//     computedRequiresReaction: true,
+//     observableRequiresReaction: true,
+//     reactionRequiresObservable: true,
+//     enforceActions: 'observed',
+//   });
+// }
+
 for (let i = 0; i < 1000; i += 1) {
   const roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
 

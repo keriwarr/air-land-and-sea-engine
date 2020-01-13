@@ -30,6 +30,7 @@ describe('RoundState', () => {
 
         reaction.dispose();
       });
+
       roundState.surrender();
       expect(roundState.victor).toBe(PLAYER.ONE);
       expect(roundState.complete).toBe(true);

@@ -258,22 +258,27 @@ export class RoundState {
     }
   );
 
-  readonly getAdjacentTheaters = computedFn((theater: THEATER) => {
-    const theaterIndex = this.theaterPermutation.findIndex(t => t === theater);
+  readonly getAdjacentTheaters = computedFn(
+    (theater: THEATER) => {
+      const theaterIndex = this.theaterPermutation.findIndex(
+        t => t === theater
+      );
 
-    switch (theaterIndex) {
-      case 0:
-        return [this.theaterPermutation[1]];
-      case 1:
-        return [this.theaterPermutation[0], this.theaterPermutation[2]];
-      case 2:
-        return [this.theaterPermutation[1]];
-      default:
-        throw new Error(
-          `Could not find theater ${theater} in theater permutation.`
-        );
-    }
-  });
+      switch (theaterIndex) {
+        case 0:
+          return [this.theaterPermutation[1]];
+        case 1:
+          return [this.theaterPermutation[0], this.theaterPermutation[2]];
+        case 2:
+          return [this.theaterPermutation[1]];
+        default:
+          throw new Error(
+            `Could not find theater ${theater} in theater permutation.`
+          );
+      }
+    },
+    { keepAlive: true }
+  );
 
   readonly momentaryEffectiveStrengths = computedFn((moveCount: number) => {
     const startingPoint = mapValues(this.deck.byId, card => card.rank);
@@ -771,9 +776,12 @@ export class RoundState {
     return this.momentaryCardFaceUpMap(this.numMoves);
   }
 
-  readonly cardFaceUp = computedFn((cardId: number) => {
-    return this.momentaryCardFaceUp(this.numMoves, cardId);
-  });
+  readonly cardFaceUp = computedFn(
+    (cardId: number) => {
+      return this.momentaryCardFaceUp(this.numMoves, cardId);
+    },
+    { keepAlive: true }
+  );
 
   readonly momentaryLastCardForPlayer = computedFn(
     (moveCount: number, player: PLAYER): number | null => {
@@ -800,9 +808,12 @@ export class RoundState {
     }
   );
 
-  readonly lastCardForPlayer = computedFn((player: PLAYER) => {
-    return this.momentaryLastCardForPlayer(this.numMoves, player);
-  });
+  readonly lastCardForPlayer = computedFn(
+    (player: PLAYER) => {
+      return this.momentaryLastCardForPlayer(this.numMoves, player);
+    },
+    { keepAlive: true }
+  );
 
   @computed
   get complete() {
