@@ -255,9 +255,11 @@ export class RoundState {
             });
         }
       });
-    }
+    },
+    { keepAlive: true }
   );
 
+  // better way to memoize this?
   readonly getAdjacentTheaters = computedFn(
     (theater: THEATER) => {
       const theaterIndex = this.theaterPermutation.findIndex(
@@ -543,10 +545,19 @@ export class RoundState {
         switch (move.type) {
           case MOVE_TYPE.CARD: {
             const card = this.deck.byId[move.id];
+            if (!move.faceUp) {
+              break;
+            }
+
+            const previousBoardState = this.momentaryBoardState(moveCount - 1);
+
             getAnticipatedDecisions(
               card.cardTypeKey,
               player,
-              moveCount - 1
+              moveCount - 1,
+              move.theater,
+              previousBoardState,
+              this.getAdjacentTheaters
             ).forEach(anticipatedDecision => {
               draftState.push(anticipatedDecision);
             });
@@ -566,7 +577,10 @@ export class RoundState {
                 getAnticipatedDecisions(
                   flippedCardState.card.cardTypeKey,
                   move.decision.targetedPlayer,
-                  moveCount - 1
+                  moveCount - 1,
+                  move.decision.theater,
+                  previousBoardState,
+                  this.getAdjacentTheaters
                 ).forEach(anticipatedDecision => {
                   draftState.push(anticipatedDecision);
                 });
@@ -584,7 +598,8 @@ export class RoundState {
             });
         }
       });
-    }
+    },
+    { keepAlive: true }
   );
 
   @computed
@@ -862,6 +877,10 @@ export class RoundState {
     move: Omit<ICardMove, 'type'>,
     opts: { dryRun?: boolean } = {}
   ) => {
+    if (this.anticipatedDecision) {
+      throw new Error('Can not play a card when a decision is anticipated');
+    }
+
     const hand = this.currentHand;
 
     if (
@@ -889,7 +908,10 @@ export class RoundState {
   };
 
   @action
-  readonly playDecision = (move: Omit<IDecisionMove, 'type'>) => {
+  readonly playDecision = (
+    move: Omit<IDecisionMove, 'type'>,
+    opts: { dryRun?: boolean } = {}
+  ) => {
     const anticipatedDecision = this.anticipatedDecision;
 
     if (!anticipatedDecision) {
@@ -1017,6 +1039,6 @@ export class RoundState {
         });
     }
 
-    this.playMove({ type: MOVE_TYPE.DECISION, ...move });
+    this.playMove({ type: MOVE_TYPE.DECISION, ...move }, opts);
   };
 }

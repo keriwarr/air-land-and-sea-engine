@@ -1,6 +1,8 @@
 import { PLAYER, getOtherPlayer } from './player';
 import { THEATER } from './theater';
 import { CARD_TYPE_KEY } from './cardType';
+import { IBoardState } from './board';
+import { enumValues } from './utils';
 
 export enum DECISION_TYPE {
   FLIP_DECISION = 'FLIP_DECISION',
@@ -54,7 +56,10 @@ export interface IAnticipatedDecision {
 export const getAnticipatedDecisions = (
   cardTypeKey: CARD_TYPE_KEY,
   player: PLAYER,
-  promptingMoveIndex: number
+  promptingMoveIndex: number,
+  playedTheater: THEATER,
+  boardState: IBoardState,
+  getAdjacentTheaters: (theater: THEATER) => THEATER[]
 ): IAnticipatedDecision[] => {
   const anticipatedTypeAndPlayers = (() => {
     switch (cardTypeKey) {
@@ -62,8 +67,22 @@ export const getAnticipatedDecisions = (
         return [{ type: DECISION_TYPE.REINFORCE_DECISION, player }];
       case CARD_TYPE_KEY.AMBUSH:
         return [{ type: DECISION_TYPE.FLIP_DECISION, player }];
-      case CARD_TYPE_KEY.MANEUVER:
+      case CARD_TYPE_KEY.MANEUVER: {
+        const adjacentTheaters = getAdjacentTheaters(playedTheater);
+        const adjacentPlayerTheaters = adjacentTheaters
+          .map(theater =>
+            enumValues(PLAYER).map(player => boardState[theater][player])
+          )
+          .reduce((flat, playerTheaters) => [...flat, ...playerTheaters], []);
+        if (
+          !adjacentPlayerTheaters.find(
+            adjacentPlayerTheater => adjacentPlayerTheater.length > 0
+          )
+        ) {
+          return [];
+        }
         return [{ type: DECISION_TYPE.FLIP_DECISION, player }];
+      }
       case CARD_TYPE_KEY.DISRUPT:
         return [
           { type: DECISION_TYPE.FLIP_DECISION, player },
@@ -72,8 +91,15 @@ export const getAnticipatedDecisions = (
             player: getOtherPlayer(player),
           },
         ];
-      case CARD_TYPE_KEY.REDEPLOY:
+      case CARD_TYPE_KEY.REDEPLOY: {
+        const playerCardStates = enumValues(THEATER)
+          .map(theater => boardState[theater][player])
+          .reduce((flat, cardStates) => [...flat, ...cardStates], []);
+        if (!playerCardStates.find(cardState => !cardState.faceUp)) {
+          return [];
+        }
         return [{ type: DECISION_TYPE.REDEPLOY_DECISION, player }];
+      }
       case CARD_TYPE_KEY.TRANSPORT:
         return [{ type: DECISION_TYPE.TRANSPORT_DECISION, player }];
       default:

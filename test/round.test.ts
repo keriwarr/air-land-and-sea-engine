@@ -366,17 +366,269 @@ describe('RoundState', () => {
         }).toThrow();
       });
 
-      it.todo("can't flip over a card in a non-adjacent theater");
+      it("can't flip over a card in a non-adjacent theater", () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
+            .getMove()
+        );
 
-      it.todo('can filp over an allied card');
+        expect(() => {
+          roundState.playDecision(
+            {
+              decision: {
+                type: DECISION_TYPE.FLIP_DECISION,
+                targetedPlayer: PLAYER.TWO,
+                theater: THEATER.AIR,
+              },
+            },
+            {
+              dryRun: true,
+            }
+          );
+        }).toThrow();
 
-      it.todo('can filp over an enemy card');
+        expect(() => {
+          roundState.playDecision(
+            {
+              decision: {
+                type: DECISION_TYPE.FLIP_DECISION,
+                targetedPlayer: PLAYER.ONE,
+                theater: THEATER.SEA,
+              },
+            },
+            {
+              dryRun: true,
+            }
+          );
+        }).toThrow();
 
-      it.todo('can be flipped over by a triggered effect');
+        expect(() => {
+          roundState.playDecision(
+            {
+              decision: {
+                type: DECISION_TYPE.FLIP_DECISION,
+                targetedPlayer: PLAYER.TWO,
+                theater: THEATER.SEA,
+              },
+            },
+            {
+              dryRun: true,
+            }
+          );
+        }).toThrow();
+      });
 
-      it.todo('has no effect if there are no targetable cards');
+      it('can filp over an allied card', () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+            .getMove()
+        );
 
-      it.todo('must flip a card if there are targetable cards');
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+            .getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.AIR,
+          },
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [
+                "AIR-Heavy Bombers-6 (flipped)",
+              ],
+              "TWO": Array [],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Maneuver-3",
+              ],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "SEA-Super Battleship-6",
+              ],
+            },
+          }
+        `);
+      });
+
+      it('can filp over an enemy card', () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+            .getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+            .getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.TWO,
+            theater: THEATER.SEA,
+          },
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [
+                "AIR-Heavy Bombers-6",
+              ],
+              "TWO": Array [],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Maneuver-3",
+              ],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "SEA-Super Battleship-6 (flipped)",
+              ],
+            },
+          }
+        `);
+      });
+
+      it('can be flipped over by a triggered effect', () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
+            .getMove({ faceUp: false })
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.TWO,
+            theater: THEATER.AIR,
+          },
+        });
+
+        expect(roundState.anticipatedDecisionsStack.length).toBe(1);
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.LAND,
+          },
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "AIR-Maneuver-3",
+              ],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Maneuver-3 (flipped)",
+                "LAND-Heavy Tanks-6",
+              ],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+          }
+        `);
+      });
+
+      it('has no effect if there are no targetable cards', () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
+            .getMove()
+        );
+
+        expect(roundState.anticipatedDecisionsStack.length).toBe(0);
+      });
+
+      it('must flip a card if there are targetable cards', () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+            .getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+            .getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        expect(() => {
+          roundState.playCard(
+            roundState.deck
+              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
+              .getMove(),
+            { dryRun: true }
+          );
+        }).toThrow();
+      });
+
+      it("doesn't anticipate decisions when played face down", () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
+            .getMove({ faceUp: false })
+        );
+
+        expect(roundState.anticipatedDecisionsStack.length).toBe(0);
+      });
     });
 
     describe(CARD_TYPE_KEY.AERODROME, () => {
@@ -449,6 +701,8 @@ describe('RoundState', () => {
       it.todo('must add the card in an adjacent theater');
 
       it.todo('can be triggered multiple times');
+
+      it.todo("doesn't anticipate a decision when played face down");
     });
 
     describe(CARD_TYPE_KEY.AMBUSH, () => {
@@ -465,6 +719,8 @@ describe('RoundState', () => {
       it.todo('can be flipped over by a triggered effect');
 
       it.todo('must always flip over a card');
+
+      it.todo("doesn't anticipate a decision when played face down");
     });
 
     describe(CARD_TYPE_KEY.COVER_FIRE, () => {
@@ -503,6 +759,8 @@ describe('RoundState', () => {
       it.todo('can flip over a card in a non-adjacent theater');
 
       it.todo('can be cancelled by being flipped over mid-effect');
+
+      it.todo("doesn't anticipate a decision when played face down");
     });
 
     describe(CARD_TYPE_KEY.TRANSPORT, () => {
@@ -519,6 +777,8 @@ describe('RoundState', () => {
       it.todo('can transport itself');
 
       it.todo('can be triggered multiple times');
+
+      it.todo("doesn't anticipate a decision when played face down");
     });
 
     describe(CARD_TYPE_KEY.ESCALATION, () => {
@@ -551,6 +811,12 @@ describe('RoundState', () => {
       it.todo('can be activated more than once');
 
       it.todo('handles a truly degenerate case');
+
+      it.todo("doesn't anticipate a decision when played face down");
+
+      it.todo(
+        "doesn't anticipate a decision when player has no face down cards"
+      );
     });
 
     describe(CARD_TYPE_KEY.BLOCKADE, () => {
@@ -672,5 +938,18 @@ describe('RoundState', () => {
 
       it.todo('has a status effect when Support is played');
     });
+  });
+
+  describe('Time travel', () => {
+    // try playing out a full game, and changing one of the first moves in a way
+    // that doesn't retro-actively break the future moves, and then see if the
+    // state can be correctly recomputed.
+    it.todo('can replay history on top of a modified past move');
+
+    it.todo('can undo moves');
+
+    it.todo('can redo moves');
+
+    it.todo('can process new moves after undoing');
   });
 });
