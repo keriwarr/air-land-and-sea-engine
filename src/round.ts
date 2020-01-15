@@ -1,5 +1,5 @@
 import { Card, Deck } from './card';
-import { exhaustiveSwitch, mapValues } from './utils';
+import { exhaustiveSwitch, mapValues, keyBy } from './utils';
 import { computed, action } from 'mobx';
 import { computedFn } from 'mobx-utils';
 import { IMove, MOVE_TYPE, MoveState, ICardMove, IDecisionMove } from './move';
@@ -74,7 +74,7 @@ export class RoundState {
       }
 
       const move = this.moveState.getMove(moveCount - 1);
-      const playerForMove = this.playerForMove(moveCount - 1);
+      const playerForMove = this.momentaryActivePlayer(moveCount - 1);
       const previousState = this.momentaryHand(moveCount - 1, player);
 
       if (move === null || move.type === MOVE_TYPE.SURRENDER) {
@@ -129,7 +129,8 @@ export class RoundState {
             });
         }
       });
-    }
+    },
+    { keepAlive: true }
   );
 
   @computed
@@ -179,7 +180,7 @@ export class RoundState {
       }
 
       const move = this.moveState.getMove(moveCount - 1);
-      const player = this.playerForMove(moveCount - 1);
+      const player = this.momentaryActivePlayer(moveCount - 1);
       const previousState = this.momentaryBoardState(moveCount - 1);
 
       if (move === null || move.type === MOVE_TYPE.SURRENDER) {
@@ -489,7 +490,7 @@ export class RoundState {
     );
   }
 
-  readonly playerForMove = computedFn(
+  readonly momentaryActivePlayer = computedFn(
     (moveCount: number): PLAYER => {
       if (moveCount === 0) {
         return PLAYER.ONE;
@@ -510,7 +511,7 @@ export class RoundState {
       const lastMoveCountWithNoAnticipatedMoves = this.lastMoveCountWithNoAnticipatedMoves(
         moveCount
       );
-      const lastPlayerForMove = this.playerForMove(
+      const lastPlayerForMove = this.momentaryActivePlayer(
         lastMoveCountWithNoAnticipatedMoves
       );
       const turnOrderWasToggledThen = this.turnOrderToggledByRedeploy(
@@ -532,7 +533,7 @@ export class RoundState {
       }
 
       const move = this.moveState.getMove(moveCount - 1);
-      const player = this.playerForMove(moveCount - 1);
+      const player = this.momentaryActivePlayer(moveCount - 1);
       const previousState = this.momentaryAnticipatedDecisionsStack(
         moveCount - 1
       );
@@ -637,7 +638,7 @@ export class RoundState {
         moveCount
       );
 
-      const playerAtStartOfLastTurn = this.playerForMove(
+      const playerAtStartOfLastTurn = this.momentaryActivePlayer(
         lastMoveCountWithNoAnticipatedMoves
       );
 
@@ -663,7 +664,7 @@ export class RoundState {
       }
 
       const move = this.moveState.getMove(moveCount - 1);
-      const playerForMove = this.playerForMove(moveCount - 1);
+      const playerForMove = this.momentaryActivePlayer(moveCount - 1);
       const previousState = this.numRedeploymentsAsOfTurn(
         moveCount - 1,
         player
@@ -698,7 +699,7 @@ export class RoundState {
 
   @computed
   get activePlayer() {
-    return this.playerForMove(this.numMoves);
+    return this.momentaryActivePlayer(this.numMoves);
   }
 
   readonly momentaryCardFaceUpMap = computedFn(
@@ -708,7 +709,7 @@ export class RoundState {
       }
 
       const move = this.moveState.getMove(moveCount - 1);
-      const player = this.playerForMove(moveCount - 1);
+      const player = this.momentaryActivePlayer(moveCount - 1);
       const previousState = this.momentaryCardFaceUpMap(moveCount - 1);
 
       if (move === null || move.type === MOVE_TYPE.SURRENDER) {
@@ -805,7 +806,7 @@ export class RoundState {
       }
 
       const move = this.moveState.getMove(moveCount - 1);
-      const playerForMove = this.playerForMove(moveCount - 1);
+      const playerForMove = this.momentaryActivePlayer(moveCount - 1);
       const previousState = this.momentaryLastCardForPlayer(
         moveCount - 1,
         player
@@ -830,6 +831,48 @@ export class RoundState {
     { keepAlive: true }
   );
 
+  // This is potentially a pretty gross perf cost. Maybe find a way to do this
+  // incrementally, or just a better way to implement aerodrome
+  readonly momentaryAllCardLocations = computedFn((moveCount: number) => {
+    const iterableTheaters = this.momentaryIterableTheaters(moveCount);
+
+    const cardLocationsArray = iterableTheaters
+      .map(({ cards, player, theater }) =>
+        cards.map(({ card }, index) => ({
+          player,
+          theater,
+          indexFromTop: index,
+          cardId: card.id,
+        }))
+      )
+      .reduce((flat, cardLocations) => [...flat, ...cardLocations], []);
+
+    return keyBy(cardLocationsArray, cardLocation => cardLocation.cardId);
+  });
+
+  readonly momentaryCardLocation = computedFn(
+    (moveCount: number, cardId: number) => {
+      const allCardLocations = this.momentaryAllCardLocations(moveCount);
+
+      const cardLocation = allCardLocations[cardId];
+
+      return cardLocation
+        ? {
+            player: cardLocation.player,
+            theater: cardLocation.theater,
+            indexFromTop: cardLocation.indexFromTop,
+          }
+        : null;
+    }
+  );
+
+  readonly cardLocation = computedFn(
+    (cardId: number) => {
+      return this.momentaryCardLocation(this.numMoves, cardId);
+    },
+    { keepAlive: true }
+  );
+
   @computed
   get complete() {
     return (
@@ -845,8 +888,7 @@ export class RoundState {
     }
 
     if (this.moveState.mostRecentMove?.type === MOVE_TYPE.SURRENDER) {
-      // this is janky
-      return this.activePlayer;
+      return getOtherPlayer(this.momentaryActivePlayer(this.numMoves - 1));
     }
 
     return this.momentaryTheatersControlled(this.numMoves, PLAYER.ONE) >= 2
@@ -895,11 +937,17 @@ export class RoundState {
       lastPlayedCardId !== null &&
       this.deck.byId[lastPlayedCardId].cardTypeKey === CARD_TYPE_KEY.AIR_DROP &&
       this.cardFaceUp(lastPlayedCardId);
+    const aerodromeInEffet =
+      !!this.cardFaceUp(this.deck.find({ type: CARD_TYPE_KEY.AERODROME }).id) &&
+      this.cardLocation(this.deck.find({ type: CARD_TYPE_KEY.AERODROME }).id)
+        ?.player === this.activePlayer &&
+      this.deck.byId[move.id].rank <= 3;
 
     if (
       move.faceUp &&
       move.theater !== this.deck.byId[move.id].theater &&
-      !airDropInEffect
+      !airDropInEffect &&
+      !aerodromeInEffet
     ) {
       throw new Error("Played card doesn't match the theater it was played in");
     }

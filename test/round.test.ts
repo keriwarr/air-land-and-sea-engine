@@ -1,16 +1,18 @@
 import { RoundState } from '../src/round';
 import { PLAYER } from '../src/player';
 import { DECISION_TYPE } from '../src/decision';
-import { THEATER } from '../src/theater';
+import { THEATER, getDifferentTheater } from '../src/theater';
 import { CARD_TYPE_KEY } from '../src/cardType';
-import { autorun } from 'mobx';
+import { enumValues } from '../src/utils';
 
 describe('RoundState', () => {
   describe('End Conditions', () => {
     let roundState: RoundState;
 
     beforeEach(() => {
-      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
+      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA], {
+        disableHandContainsCheck: true,
+      });
     });
 
     it('initially has no victor', () => {
@@ -25,11 +27,11 @@ describe('RoundState', () => {
     });
 
     it('has a different victor after a later surrender', () => {
-      autorun(reaction => {
-        roundState.playCard(roundState.currentHandP1[0].getMove());
-
-        reaction.dispose();
-      });
+      roundState.playCard(
+        roundState.deck
+          .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+          .getMove()
+      );
 
       roundState.surrender();
       expect(roundState.victor).toBe(PLAYER.ONE);
@@ -632,13 +634,195 @@ describe('RoundState', () => {
     });
 
     describe(CARD_TYPE_KEY.AERODROME, () => {
-      it.todo('permits cards to be played in any theater');
+      it('permits cards to be played in any theater', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
+        );
 
-      it.todo("doesn't grant permissions to the opponent");
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+            .getMove()
+        );
 
-      it.todo("doesn't work on cards of strength four or more");
+        [1, 2, 3].forEach(rank => {
+          enumValues(THEATER).forEach(theater => {
+            expect(() => {
+              roundState.playCard(
+                roundState.deck
+                  .find({ rank, theater })
+                  .getMove({ theater: getDifferentTheater(theater) }),
+                { dryRun: true }
+              );
+            }).not.toThrow();
+          });
+        });
+      });
 
-      it.todo('stops working when flipped over');
+      it("doesn't grant permissions to the opponent", () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
+        );
+
+        [1, 2, 3].forEach(rank => {
+          enumValues(THEATER).forEach(theater => {
+            expect(() => {
+              roundState.playCard(
+                roundState.deck
+                  .find({ rank, theater })
+                  .getMove({ theater: getDifferentTheater(theater) }),
+                { dryRun: true }
+              );
+            }).toThrow();
+          });
+        });
+      });
+
+      it("doesn't work on cards of strength four or more", () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.SUPPORT }).getMove()
+        );
+
+        [4, 5, 6].forEach(rank => {
+          enumValues(THEATER).forEach(theater => {
+            expect(() => {
+              roundState.playCard(
+                roundState.deck
+                  .find({ rank, theater })
+                  .getMove({ theater: getDifferentTheater(theater) }),
+                { dryRun: true }
+              );
+            }).toThrow();
+          });
+        });
+      });
+
+      it('continues work for multiple turns', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+            .getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+            .getMove()
+        );
+
+        [1, 2, 3].forEach(rank => {
+          enumValues(THEATER).forEach(theater => {
+            expect(() => {
+              roundState.playCard(
+                roundState.deck
+                  .find({ rank, theater })
+                  .getMove({ theater: getDifferentTheater(theater) }),
+                { dryRun: true }
+              );
+            }).not.toThrow();
+          });
+        });
+      });
+
+      it('stops working when flipped over', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.AIR,
+          },
+        });
+
+        [1, 2, 3].forEach(rank => {
+          enumValues(THEATER).forEach(theater => {
+            expect(() => {
+              roundState.playCard(
+                roundState.deck
+                  .find({ rank, theater })
+                  .getMove({ theater: getDifferentTheater(theater) }),
+                { dryRun: true }
+              );
+            }).toThrow();
+          });
+        });
+      });
+
+      it('starts working again when flipped back over', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
+        );
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.AIR,
+          },
+        });
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.AMBUSH, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.AIR,
+          },
+        });
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
+            .getMove()
+        );
+
+        [1, 2, 3].forEach(rank => {
+          enumValues(THEATER).forEach(theater => {
+            expect(() => {
+              roundState.playCard(
+                roundState.deck
+                  .find({ rank, theater })
+                  .getMove({ theater: getDifferentTheater(theater) }),
+                { dryRun: true }
+              );
+            }).not.toThrow();
+          });
+        });
+      });
     });
 
     describe(CARD_TYPE_KEY.CONTAINMENT, () => {
@@ -850,13 +1034,9 @@ describe('RoundState', () => {
     });
 
     it("prevents playing cards that are not in the player's hand", () => {
-      autorun(reaction => {
-        expect(() => {
-          roundState.playCard(roundState.currentHandP2[0].getMove());
-        }).toThrow();
-
-        reaction.dispose();
-      });
+      expect(() => {
+        roundState.playCard(roundState.currentHandP2[0].getMove());
+      }).toThrow();
 
       // TODO - I'd like to test this case too, but I'd need a way to
       // conveniently play whatever decisions are necessary after playing p1's

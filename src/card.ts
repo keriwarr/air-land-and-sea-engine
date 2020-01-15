@@ -168,6 +168,7 @@ export class Deck {
   }
 
   // TODO memoize this
+  // TODO should this do a .filter and then throw if multiple cards are matched?
   public readonly find = ({
     theater,
     rank,
