@@ -876,17 +876,145 @@ describe('RoundState', () => {
     });
 
     describe(CARD_TYPE_KEY.REINFORCE, () => {
-      it.todo('adds a card face down');
+      it('adds a card face down', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
+        );
+
+        expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
+          undefined
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.REINFORCE_DECISION,
+            made: {
+              theater: THEATER.AIR,
+            },
+          },
+        });
+
+        expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
+          false
+        );
+      });
 
       it.todo('can add a card that is immediately discarded');
 
-      it.todo('allows choosing not to reinforce');
+      it('allows choosing not to reinforce', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
+        );
 
-      it.todo('must add the card in an adjacent theater');
+        expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
+          undefined
+        );
 
-      it.todo('can be triggered multiple times');
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.REINFORCE_DECISION,
+            made: null,
+          },
+        });
 
-      it.todo("doesn't anticipate a decision when played face down");
+        expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
+          undefined
+        );
+      });
+
+      it('must add the card in an adjacent theater', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
+        );
+
+        expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
+          undefined
+        );
+
+        expect(() => {
+          roundState.playDecision(
+            {
+              decision: {
+                type: DECISION_TYPE.REINFORCE_DECISION,
+                made: {
+                  theater: THEATER.LAND,
+                },
+              },
+            },
+            { dryRun: true }
+          );
+        }).toThrowErrorMatchingInlineSnapshot(
+          `"Reinforcement card must be played to adjacent theater"`
+        );
+      });
+
+      it('can be triggered multiple times', () => {
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.REINFORCE_DECISION,
+            made: {
+              theater: THEATER.AIR,
+            },
+          },
+        });
+
+        roundState.playCard(
+          roundState.deck.find({ type: CARD_TYPE_KEY.AMBUSH }).getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.LAND,
+          },
+        });
+
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
+            .getMove()
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.FLIP_DECISION,
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.LAND,
+          },
+        });
+
+        expect(roundState.cardFaceUp(roundState.startingDeck[1].id)).toBe(
+          undefined
+        );
+
+        roundState.playDecision({
+          decision: {
+            type: DECISION_TYPE.REINFORCE_DECISION,
+            made: {
+              theater: THEATER.SEA,
+            },
+          },
+        });
+
+        expect(roundState.cardFaceUp(roundState.startingDeck[1].id)).toBe(
+          false
+        );
+      });
+
+      it("doesn't anticipate a decision when played face down", () => {
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.REINFORCE })
+            .getMove({ faceUp: false })
+        );
+
+        expect(roundState.anticipatedDecision).toBe(null);
+      });
     });
 
     describe(CARD_TYPE_KEY.AMBUSH, () => {

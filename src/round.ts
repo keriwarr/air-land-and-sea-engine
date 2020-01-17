@@ -53,7 +53,7 @@ export class RoundState {
   }
 
   @computed
-  private get startingDeck() {
+  get startingDeck() {
     return [
       this.deck.cards[12],
       this.deck.cards[13],
@@ -220,7 +220,7 @@ export class RoundState {
                 if (!decision.made) {
                   break;
                 }
-                const deck = this.momentaryDeck(moveCount);
+                const deck = this.momentaryDeck(moveCount - 1);
                 draftState[decision.made.theater][player].unshift({
                   card: deck[0],
                   faceUp: false,
@@ -755,7 +755,7 @@ export class RoundState {
                 if (!decision.made) {
                   break;
                 }
-                const deck = this.momentaryDeck(moveCount);
+                const deck = this.momentaryDeck(moveCount - 1);
                 draftState[deck[0].id] = false;
                 break;
               }
