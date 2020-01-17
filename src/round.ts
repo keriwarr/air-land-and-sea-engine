@@ -10,6 +10,10 @@ import {
   DECISION_TYPE,
   getAnticipatedDecisions,
   IAnticipatedDecision,
+  IFlipDecision,
+  IReinforceDecision,
+  ITransportDecision,
+  IRedeployDecision,
 } from './decision';
 import { THEATER, THEATERS } from './theater';
 import { CARD_TYPE_KEY } from './cardType';
@@ -1088,5 +1092,57 @@ export class RoundState {
     }
 
     this.playMove({ type: MOVE_TYPE.DECISION, ...move }, opts);
+  };
+
+  @action
+  readonly playFlipDecision = (
+    move: Omit<IFlipDecision, 'type'>,
+    opts: { dryRun?: boolean } = {}
+  ) => {
+    this.playDecision(
+      {
+        decision: { type: DECISION_TYPE.FLIP_DECISION, ...move },
+      },
+      opts
+    );
+  };
+
+  @action
+  readonly playReinforceDecision = (
+    move: Omit<IReinforceDecision, 'type'>,
+    opts: { dryRun?: boolean } = {}
+  ) => {
+    this.playDecision(
+      {
+        decision: { type: DECISION_TYPE.REINFORCE_DECISION, ...move },
+      },
+      opts
+    );
+  };
+
+  @action
+  readonly playTransportDecision = (
+    move: Omit<ITransportDecision, 'type'>,
+    opts: { dryRun?: boolean } = {}
+  ) => {
+    this.playDecision(
+      {
+        decision: { type: DECISION_TYPE.TRANSPORT_DECISION, ...move },
+      },
+      opts
+    );
+  };
+
+  @action
+  readonly playRedeployDecision = (
+    move: Omit<IRedeployDecision, 'type'>,
+    opts: { dryRun?: boolean } = {}
+  ) => {
+    this.playDecision(
+      {
+        decision: { type: DECISION_TYPE.REDEPLOY_DECISION, ...move },
+      },
+      opts
+    );
   };
 }

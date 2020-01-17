@@ -15,17 +15,18 @@ interface IGenericDecision<T extends DECISION_TYPE = DECISION_TYPE> {
   type: T;
 }
 
-interface IFlipDecision extends IGenericDecision<DECISION_TYPE.FLIP_DECISION> {
+export interface IFlipDecision
+  extends IGenericDecision<DECISION_TYPE.FLIP_DECISION> {
   targetedPlayer: PLAYER;
   theater: THEATER;
 }
-interface IReinforceDecision
+export interface IReinforceDecision
   extends IGenericDecision<DECISION_TYPE.REINFORCE_DECISION> {
   made: {
     theater: THEATER;
   } | null;
 }
-interface ITransportDecision
+export interface ITransportDecision
   extends IGenericDecision<DECISION_TYPE.TRANSPORT_DECISION> {
   made: {
     originTheater: THEATER;
@@ -33,7 +34,7 @@ interface ITransportDecision
     destinationTheater: THEATER;
   } | null;
 }
-interface IRedeployDecision
+export interface IRedeployDecision
   extends IGenericDecision<DECISION_TYPE.REDEPLOY_DECISION> {
   made: {
     theater: THEATER;

@@ -1,6 +1,5 @@
 import { RoundState } from '../src/round';
 import { PLAYER } from '../src/player';
-import { DECISION_TYPE } from '../src/decision';
 import { THEATER, getDifferentTheater } from '../src/theater';
 import { CARD_TYPE_KEY } from '../src/cardType';
 import { enumValues } from '../src/utils';
@@ -154,12 +153,9 @@ describe('RoundState', () => {
         roundState.playCard(
           roundState.deck.find({ type: CARD_TYPE_KEY.AMBUSH }).getMove()
         );
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.AIR,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
         });
 
         expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
@@ -190,12 +186,9 @@ describe('RoundState', () => {
             })
             .getMove()
         );
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.AIR,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
         });
 
         expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
@@ -271,12 +264,9 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.AIR,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
         });
 
         expect(() => {
@@ -385,12 +375,9 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.AIR,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
         });
 
         expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
@@ -436,12 +423,9 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.TWO,
-            theater: THEATER.SEA,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.TWO,
+          theater: THEATER.SEA,
         });
 
         expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
@@ -487,22 +471,16 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.TWO,
-            theater: THEATER.AIR,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.TWO,
+          theater: THEATER.AIR,
         });
 
         expect(roundState.anticipatedDecisionsStack.length).toBe(1);
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.LAND,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.LAND,
         });
 
         expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
@@ -692,12 +670,9 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.AIR,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
         });
 
         [1, 2, 3].forEach(rank => {
@@ -725,12 +700,9 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.AIR,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
         });
 
         roundState.playCard(
@@ -739,12 +711,9 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.AIR,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
         });
 
         roundState.playCard(
@@ -821,17 +790,14 @@ describe('RoundState', () => {
         roundState.playCard(
           roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
         );
-
+        //FIXME
         expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
           undefined
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.REINFORCE_DECISION,
-            made: {
-              theater: THEATER.AIR,
-            },
+        roundState.playReinforceDecision({
+          made: {
+            theater: THEATER.AIR,
           },
         });
 
@@ -847,15 +813,13 @@ describe('RoundState', () => {
           roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
         );
 
+        // FIXME
         expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
           undefined
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.REINFORCE_DECISION,
-            made: null,
-          },
+        roundState.playReinforceDecision({
+          made: null,
         });
 
         expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
@@ -873,13 +837,10 @@ describe('RoundState', () => {
         );
 
         expect(() => {
-          roundState.playDecision(
+          roundState.playReinforceDecision(
             {
-              decision: {
-                type: DECISION_TYPE.REINFORCE_DECISION,
-                made: {
-                  theater: THEATER.LAND,
-                },
+              made: {
+                theater: THEATER.LAND,
               },
             },
             { dryRun: true }
@@ -894,12 +855,9 @@ describe('RoundState', () => {
           roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.REINFORCE_DECISION,
-            made: {
-              theater: THEATER.AIR,
-            },
+        roundState.playReinforceDecision({
+          made: {
+            theater: THEATER.AIR,
           },
         });
 
@@ -907,12 +865,9 @@ describe('RoundState', () => {
           roundState.deck.find({ type: CARD_TYPE_KEY.AMBUSH }).getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.LAND,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.LAND,
         });
 
         roundState.playCard(
@@ -921,24 +876,18 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.FLIP_DECISION,
-            targetedPlayer: PLAYER.ONE,
-            theater: THEATER.LAND,
-          },
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.LAND,
         });
 
         expect(roundState.cardFaceUp(roundState.startingDeck[1].id)).toBe(
           undefined
         );
 
-        roundState.playDecision({
-          decision: {
-            type: DECISION_TYPE.REINFORCE_DECISION,
-            made: {
-              theater: THEATER.SEA,
-            },
+        roundState.playReinforceDecision({
+          made: {
+            theater: THEATER.SEA,
           },
         });
 
