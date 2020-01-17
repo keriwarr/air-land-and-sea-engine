@@ -4,14 +4,33 @@ import { THEATER, getDifferentTheater } from '../src/theater';
 import { CARD_TYPE_KEY } from '../src/cardType';
 import { enumValues } from '../src/utils';
 
+const descriptors = {
+  SUPPORT: { type: CARD_TYPE_KEY.SUPPORT },
+  REINFORCE: { type: CARD_TYPE_KEY.REINFORCE },
+  TRANSPORT: { type: CARD_TYPE_KEY.TRANSPORT },
+  AIR_DROP: { type: CARD_TYPE_KEY.AIR_DROP },
+  AMBUSH: { type: CARD_TYPE_KEY.AMBUSH },
+  ESCALATION: { type: CARD_TYPE_KEY.ESCALATION },
+  AIR_MANEUVER: { type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR },
+  LAND_MANEUVER: { type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND },
+  SEA_MANEUVER: { type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.SEA },
+  AERODROME: { type: CARD_TYPE_KEY.AERODROME },
+  COVER_FIRE: { type: CARD_TYPE_KEY.COVER_FIRE },
+  REDEPLOY: { type: CARD_TYPE_KEY.REDEPLOY },
+  CONTAINMENT: { type: CARD_TYPE_KEY.CONTAINMENT },
+  DISRUPT: { type: CARD_TYPE_KEY.DISRUPT },
+  BLOCKADE: { type: CARD_TYPE_KEY.BLOCKADE },
+  HEAVY_BOMBERS: { type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR },
+  HEAVY_TANKS: { type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND },
+  SUPER_BATTLESHIP: { type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA },
+};
+
 describe('RoundState', () => {
   describe('End Conditions', () => {
     let roundState: RoundState;
 
     beforeEach(() => {
-      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA], {
-        disableHandContainsCheck: true,
-      });
+      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
     });
 
     it('initially has no victor', () => {
@@ -26,11 +45,9 @@ describe('RoundState', () => {
     });
 
     it('has a different victor after a later surrender', () => {
-      roundState.playCard(
-        roundState.deck
-          .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-          .getMove()
-      );
+      roundState.allocateHands([descriptors.HEAVY_BOMBERS]);
+
+      roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
 
       roundState.surrender();
       expect(roundState.victor).toBe(PLAYER.ONE);
@@ -51,18 +68,14 @@ describe('RoundState', () => {
     let roundState: RoundState;
 
     beforeEach(() => {
-      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA], {
-        disableHandContainsCheck: true,
-      });
+      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
     });
 
     describe(CARD_TYPE_KEY.SUPPORT, () => {
       it('adds strength to the center theater', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.SUPPORT })
-            .getMove({ theater: THEATER.AIR })
-        );
+        roundState.allocateHands([descriptors.SUPPORT]);
+
+        roundState.playCardDescriptor(descriptors.SUPPORT);
 
         expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
           Array [
@@ -86,14 +99,11 @@ describe('RoundState', () => {
       });
 
       it('adds strength to the outside theaters', () => {
-        roundState = new RoundState([THEATER.LAND, THEATER.AIR, THEATER.SEA], {
-          disableHandContainsCheck: true,
-        });
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.SUPPORT })
-            .getMove({ theater: THEATER.AIR })
-        );
+        roundState = new RoundState([THEATER.LAND, THEATER.AIR, THEATER.SEA]);
+
+        roundState.allocateHands([descriptors.SUPPORT]);
+
+        roundState.playCardDescriptor(descriptors.SUPPORT);
 
         expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
           Array [
@@ -117,11 +127,9 @@ describe('RoundState', () => {
       });
 
       it('does not work when face down', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.SUPPORT })
-            .getMove({ theater: THEATER.AIR, faceUp: false })
-        );
+        roundState.allocateHands([descriptors.SUPPORT]);
+
+        roundState.playCardDescriptor(descriptors.SUPPORT, { faceUp: false });
 
         expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
           Array [
@@ -145,14 +153,14 @@ describe('RoundState', () => {
       });
 
       it('stops working when flipped over', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.SUPPORT })
-            .getMove({ theater: THEATER.AIR })
+        roundState.allocateHands(
+          [descriptors.SUPPORT, descriptors.LAND_MANEUVER],
+          [descriptors.AMBUSH]
         );
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AMBUSH }).getMove()
-        );
+
+        roundState.playCardDescriptor(descriptors.SUPPORT);
+        roundState.playCardDescriptor(descriptors.AMBUSH);
+
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.AIR,
@@ -178,14 +186,8 @@ describe('RoundState', () => {
           ]
         `);
 
-        roundState.playCard(
-          roundState.deck
-            .find({
-              type: CARD_TYPE_KEY.MANEUVER,
-              theater: THEATER.LAND,
-            })
-            .getMove()
-        );
+        roundState.playCardDescriptor(descriptors.LAND_MANEUVER);
+
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.AIR,
@@ -215,34 +217,33 @@ describe('RoundState', () => {
 
     describe(CARD_TYPE_KEY.AIR_DROP, () => {
       it('permits playing in to non-matching theaters', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AIR_DROP }).getMove()
+        roundState.allocateHands(
+          [
+            descriptors.AIR_DROP,
+            descriptors.HEAVY_BOMBERS,
+            descriptors.SUPER_BATTLESHIP,
+          ],
+          [descriptors.HEAVY_TANKS]
         );
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
-            .getMove()
-        );
+        roundState.playCardDescriptor(descriptors.AIR_DROP);
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove({ theater: THEATER.LAND }),
+        roundState.playCardDescriptor(
+          descriptors.HEAVY_BOMBERS,
+          { theater: THEATER.LAND },
           { dryRun: true }
         );
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove({ theater: THEATER.SEA }),
+        roundState.playCardDescriptor(
+          descriptors.HEAVY_BOMBERS,
+          { theater: THEATER.SEA },
           { dryRun: true }
         );
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-            .getMove({ theater: THEATER.AIR }),
+        roundState.playCardDescriptor(
+          descriptors.SUPER_BATTLESHIP,
+          { theater: THEATER.AIR },
           { dryRun: true }
         );
       });
@@ -252,28 +253,28 @@ describe('RoundState', () => {
       it.todo("doesn't override containment");
 
       it('can be cancelled by flipping', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.AIR_DROP })
-            .getMove({ theater: THEATER.AIR })
+        roundState.allocateHands(
+          [
+            descriptors.AIR_DROP,
+            descriptors.HEAVY_BOMBERS,
+            descriptors.HEAVY_TANKS,
+            descriptors.SUPER_BATTLESHIP,
+          ],
+          [descriptors.AMBUSH]
         );
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.AMBUSH, theater: THEATER.LAND })
-            .getMove()
-        );
+        roundState.playCardDescriptor(descriptors.AIR_DROP);
 
+        roundState.playCardDescriptor(descriptors.AMBUSH);
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.AIR,
         });
 
         expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-              .getMove({ theater: THEATER.SEA }),
+          roundState.playCardDescriptor(
+            descriptors.HEAVY_BOMBERS,
+            { theater: THEATER.SEA },
             { dryRun: true }
           );
         }).toThrowErrorMatchingInlineSnapshot(
@@ -281,10 +282,9 @@ describe('RoundState', () => {
         );
 
         expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
-              .getMove({ theater: THEATER.AIR }),
+          roundState.playCardDescriptor(
+            descriptors.HEAVY_TANKS,
+            { theater: THEATER.AIR },
             { dryRun: true }
           );
         }).toThrowErrorMatchingInlineSnapshot(
@@ -292,10 +292,9 @@ describe('RoundState', () => {
         );
 
         expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-              .getMove({ theater: THEATER.LAND }),
+          roundState.playCardDescriptor(
+            descriptors.SUPER_BATTLESHIP,
+            { theater: THEATER.LAND },
             { dryRun: true }
           );
         }).toThrowErrorMatchingInlineSnapshot(
@@ -304,32 +303,32 @@ describe('RoundState', () => {
       });
 
       it("doesn't prevent playing in matching theaters", () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AIR_DROP }).getMove()
+        roundState.allocateHands(
+          [
+            descriptors.AIR_DROP,
+            descriptors.HEAVY_BOMBERS,
+            descriptors.HEAVY_TANKS,
+            descriptors.SUPER_BATTLESHIP,
+          ],
+          [descriptors.COVER_FIRE]
         );
 
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.COVER_FIRE }).getMove()
-        );
+        roundState.playCardDescriptor(descriptors.AIR_DROP);
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove({ theater: THEATER.AIR }),
+        roundState.playCardDescriptor(
+          descriptors.HEAVY_BOMBERS,
+          {},
           { dryRun: true }
         );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
-            .getMove({ theater: THEATER.LAND }),
+        roundState.playCardDescriptor(
+          descriptors.HEAVY_TANKS,
+          {},
           { dryRun: true }
         );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-            .getMove({ theater: THEATER.SEA }),
+        roundState.playCardDescriptor(
+          descriptors.SUPER_BATTLESHIP,
+          {},
           { dryRun: true }
         );
       });
@@ -337,44 +336,31 @@ describe('RoundState', () => {
 
     describe(CARD_TYPE_KEY.MANEUVER, () => {
       it("can't flip over itself", () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
-            .getMove()
-        );
-
+        roundState.allocateHands([descriptors.AIR_MANEUVER]);
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER);
         expect(roundState.anticipatedDecision).toBe(null);
       });
 
       it("can't flip over a card in a non-adjacent theater", () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
-            .getMove()
+        roundState.allocateHands(
+          [descriptors.SUPER_BATTLESHIP, descriptors.AIR_MANEUVER],
+          [descriptors.HEAVY_BOMBERS]
         );
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER);
 
         expect(roundState.anticipatedDecision).toBe(null);
       });
 
       it('can filp over an allied card', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove()
+        roundState.allocateHands(
+          [descriptors.HEAVY_BOMBERS, descriptors.LAND_MANEUVER],
+          [descriptors.SUPER_BATTLESHIP]
         );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-            .getMove()
-        );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
-            .getMove()
-        );
-
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.LAND_MANEUVER);
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.AIR,
@@ -405,23 +391,13 @@ describe('RoundState', () => {
       });
 
       it('can filp over an enemy card', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove()
+        roundState.allocateHands(
+          [descriptors.HEAVY_BOMBERS, descriptors.LAND_MANEUVER],
+          [descriptors.SUPER_BATTLESHIP]
         );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-            .getMove()
-        );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
-            .getMove()
-        );
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.LAND_MANEUVER);
 
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.TWO,
@@ -453,23 +429,15 @@ describe('RoundState', () => {
       });
 
       it('can be flipped over by a triggered effect', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
-            .getMove()
+        roundState.allocateHands(
+          [descriptors.HEAVY_TANKS, descriptors.LAND_MANEUVER],
+          [descriptors.AIR_MANEUVER]
         );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
-            .getMove({ faceUp: false })
-        );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
-            .getMove()
-        );
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
+          faceUp: false,
+        });
+        roundState.playCardDescriptor(descriptors.LAND_MANEUVER);
 
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.TWO,
@@ -507,39 +475,26 @@ describe('RoundState', () => {
       });
 
       it('has no effect if there are no targetable cards', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
-            .getMove()
-        );
+        roundState.allocateHands([descriptors.AIR_MANEUVER]);
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER);
 
         expect(roundState.anticipatedDecisionsStack.length).toBe(0);
       });
 
       it('must flip a card if there are targetable cards', () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove()
+        roundState.allocateHands(
+          [descriptors.HEAVY_BOMBERS, descriptors.LAND_MANEUVER],
+          [descriptors.SUPER_BATTLESHIP, descriptors.HEAVY_TANKS]
         );
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-            .getMove()
-        );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
-            .getMove()
-        );
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.LAND_MANEUVER);
 
         expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
-              .getMove(),
+          roundState.playCardDescriptor(
+            descriptors.HEAVY_TANKS,
+            {},
             { dryRun: true }
           );
         }).toThrowErrorMatchingInlineSnapshot(
@@ -548,34 +503,34 @@ describe('RoundState', () => {
       });
 
       it("doesn't anticipate decisions when played face down", () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
-            .getMove({ faceUp: false })
-        );
+        roundState.allocateHands([descriptors.AIR_MANEUVER]);
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
+          faceUp: false,
+        });
 
         expect(roundState.anticipatedDecisionsStack.length).toBe(0);
       });
     });
 
     describe(CARD_TYPE_KEY.AERODROME, () => {
-      it('permits cards to be played in any theater', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
-        );
+      beforeEach(() => {
+        roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA], {
+          disableHandContainsCheck: true,
+        });
+      });
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove()
-        );
+      it('permits cards to be played in any theater', () => {
+        roundState.playCardDescriptor(descriptors.AERODROME);
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
 
         [1, 2, 3].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
-            roundState.playCard(
-              roundState.deck
-                .find({ rank, theater })
-                .getMove({ theater: getDifferentTheater(theater) }),
+            roundState.playCardDescriptor(
+              {
+                rank,
+                theater,
+              },
+              { theater: getDifferentTheater(theater) },
               { dryRun: true }
             );
           });
@@ -583,17 +538,19 @@ describe('RoundState', () => {
       });
 
       it("doesn't grant permissions to the opponent", () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
-        );
+        roundState.playCardDescriptor(descriptors.AERODROME);
 
         [1, 2, 3].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
             expect(() => {
-              roundState.playCard(
-                roundState.deck
-                  .find({ rank, theater })
-                  .getMove({ theater: getDifferentTheater(theater) }),
+              roundState.playCardDescriptor(
+                {
+                  rank,
+                  theater,
+                },
+                {
+                  theater: getDifferentTheater(theater),
+                },
                 { dryRun: true }
               );
             }).toThrow();
@@ -602,21 +559,15 @@ describe('RoundState', () => {
       });
 
       it("doesn't work on cards of strength four or more", () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
-        );
-
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.SUPPORT }).getMove()
-        );
+        roundState.playCardDescriptor(descriptors.AERODROME);
+        roundState.playCardDescriptor(descriptors.SUPPORT);
 
         [4, 5, 6].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
             expect(() => {
-              roundState.playCard(
-                roundState.deck
-                  .find({ rank, theater })
-                  .getMove({ theater: getDifferentTheater(theater) }),
+              roundState.playCardDescriptor(
+                { rank, theater },
+                { theater: getDifferentTheater(theater) },
                 { dryRun: true }
               );
             }).toThrow();
@@ -625,34 +576,16 @@ describe('RoundState', () => {
       });
 
       it('continues work for multiple turns', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
-        );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove()
-        );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
-            .getMove()
-        );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-            .getMove()
-        );
+        roundState.playCardDescriptor(descriptors.AERODROME);
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
 
         [1, 2, 3].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
-            roundState.playCard(
-              roundState.deck
-                .find({ rank, theater })
-                .getMove({ theater: getDifferentTheater(theater) }),
+            roundState.playCardDescriptor(
+              { rank, theater },
+              { theater: getDifferentTheater(theater) },
               { dryRun: true }
             );
           });
@@ -660,16 +593,8 @@ describe('RoundState', () => {
       });
 
       it('stops working when flipped over', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
-        );
-
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
-            .getMove()
-        );
-
+        roundState.playCardDescriptor(descriptors.AERODROME);
+        roundState.playCardDescriptor(descriptors.LAND_MANEUVER);
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.AIR,
@@ -678,10 +603,9 @@ describe('RoundState', () => {
         [1, 2, 3].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
             expect(() => {
-              roundState.playCard(
-                roundState.deck
-                  .find({ rank, theater })
-                  .getMove({ theater: getDifferentTheater(theater) }),
+              roundState.playCardDescriptor(
+                { rank, theater },
+                { theater: getDifferentTheater(theater) },
                 { dryRun: true }
               );
             }).toThrow();
@@ -690,44 +614,27 @@ describe('RoundState', () => {
       });
 
       it('starts working again when flipped back over', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AERODROME }).getMove()
-        );
+        roundState.playCardDescriptor(descriptors.AERODROME);
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.LAND })
-            .getMove()
-        );
-
+        roundState.playCardDescriptor(descriptors.LAND_MANEUVER);
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.AIR,
         });
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.AMBUSH, theater: THEATER.LAND })
-            .getMove()
-        );
-
+        roundState.playCardDescriptor(descriptors.AMBUSH);
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.AIR,
         });
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
-            .getMove()
-        );
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
 
         [1, 2, 3].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
-            roundState.playCard(
-              roundState.deck
-                .find({ rank, theater })
-                .getMove({ theater: getDifferentTheater(theater) }),
+            roundState.playCardDescriptor(
+              { rank, theater },
+              { theater: getDifferentTheater(theater) },
               { dryRun: true }
             );
           });
@@ -757,11 +664,8 @@ describe('RoundState', () => {
 
     describe(CARD_TYPE_KEY.HEAVY, () => {
       it("just adds strength where it's played", () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-            .getMove({ theater: THEATER.AIR })
-        );
+        roundState.allocateHands([descriptors.HEAVY_BOMBERS]);
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
 
         expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
           Array [
@@ -787,10 +691,9 @@ describe('RoundState', () => {
 
     describe(CARD_TYPE_KEY.REINFORCE, () => {
       it('adds a card face down', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
-        );
-        //FIXME
+        roundState.allocateHands([descriptors.REINFORCE]);
+        roundState.playCardDescriptor(descriptors.REINFORCE);
+
         expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
           undefined
         );
@@ -809,11 +712,9 @@ describe('RoundState', () => {
       it.todo('can add a card that is immediately discarded');
 
       it('allows choosing not to reinforce', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
-        );
+        roundState.allocateHands([descriptors.REINFORCE]);
+        roundState.playCardDescriptor(descriptors.REINFORCE);
 
-        // FIXME
         expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
           undefined
         );
@@ -828,9 +729,8 @@ describe('RoundState', () => {
       });
 
       it('must add the card in an adjacent theater', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
-        );
+        roundState.allocateHands([descriptors.REINFORCE]);
+        roundState.playCardDescriptor(descriptors.REINFORCE);
 
         expect(roundState.cardFaceUp(roundState.startingDeck[0].id)).toBe(
           undefined
@@ -851,31 +751,25 @@ describe('RoundState', () => {
       });
 
       it('can be triggered multiple times', () => {
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.REINFORCE }).getMove()
+        roundState.allocateHands(
+          [descriptors.REINFORCE, descriptors.AIR_MANEUVER],
+          [descriptors.AMBUSH]
         );
 
+        roundState.playCardDescriptor(descriptors.REINFORCE);
         roundState.playReinforceDecision({
           made: {
             theater: THEATER.AIR,
           },
         });
 
-        roundState.playCard(
-          roundState.deck.find({ type: CARD_TYPE_KEY.AMBUSH }).getMove()
-        );
-
+        roundState.playCardDescriptor(descriptors.AMBUSH);
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.LAND,
         });
 
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.MANEUVER, theater: THEATER.AIR })
-            .getMove()
-        );
-
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER);
         roundState.playFlipDecision({
           targetedPlayer: PLAYER.ONE,
           theater: THEATER.LAND,
@@ -897,11 +791,8 @@ describe('RoundState', () => {
       });
 
       it("doesn't anticipate a decision when played face down", () => {
-        roundState.playCard(
-          roundState.deck
-            .find({ type: CARD_TYPE_KEY.REINFORCE })
-            .getMove({ faceUp: false })
-        );
+        roundState.allocateHands([descriptors.REINFORCE]);
+        roundState.playCardDescriptor(descriptors.REINFORCE, { faceUp: false });
 
         expect(roundState.anticipatedDecision).toBe(null);
       });

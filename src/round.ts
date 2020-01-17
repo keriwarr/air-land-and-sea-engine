@@ -1,4 +1,4 @@
-import { Card, Deck } from './card';
+import { Card, Deck, ICardDescriptor } from './card';
 import { exhaustiveSwitch, mapValues, keyBy } from './utils';
 import { computed, action } from 'mobx';
 import { computedFn } from 'mobx-utils';
@@ -26,6 +26,24 @@ export class RoundState {
     private readonly theaterPermutation: [THEATER, THEATER, THEATER],
     private readonly opts: { disableHandContainsCheck?: boolean } = {}
   ) {}
+
+  // for testing only
+  // note that this is currently coupled to the implementations of
+  // this.startingHandP1 and this.startingHandP2
+  public readonly allocateHands = (
+    playerOne: ICardDescriptor[],
+    playerTwo: ICardDescriptor[] = []
+  ) => {
+    if (this.numMoves !== 0) {
+      throw new Error('This method can only be used before moves are played');
+    }
+    playerOne.forEach((cardDescriptor, index) => {
+      this.deck.moveToIndex(cardDescriptor, index * 2);
+    });
+    playerTwo.forEach((cardDescriptor, index) => {
+      this.deck.moveToIndex(cardDescriptor, index * 2 + 1);
+    });
+  };
 
   @computed
   get numMoves() {
@@ -957,6 +975,19 @@ export class RoundState {
     }
 
     this.playMove({ type: MOVE_TYPE.CARD, ...move }, opts);
+  };
+
+  // for testing only
+  @action
+  readonly playCardDescriptor = (
+    card: ICardDescriptor,
+    moveConfig: {
+      faceUp?: boolean;
+      theater?: THEATER;
+    } = {},
+    opts: { dryRun?: boolean } = {}
+  ) => {
+    this.playCard(this.deck.find(card).getMove(moveConfig), opts);
   };
 
   @action

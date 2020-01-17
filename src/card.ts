@@ -1,6 +1,7 @@
 import { keyBy, shuffle } from './utils';
 import { THEATER } from './theater';
 import { CARD_TYPE_KEY, CardType } from './cardType';
+import { observable, action } from 'mobx';
 
 interface ICard {
   cardTypeKey: CARD_TYPE_KEY;
@@ -157,7 +158,14 @@ export class Card {
   };
 }
 
+export interface ICardDescriptor {
+  theater?: THEATER;
+  rank?: number;
+  type?: CARD_TYPE_KEY;
+}
+
 export class Deck {
+  @observable
   public readonly cards: Readonly<Card>[];
   public readonly byId: { [id: number]: Readonly<Card> };
 
@@ -169,15 +177,7 @@ export class Deck {
 
   // TODO memoize this
   // TODO should this do a .filter and then throw if multiple cards are matched?
-  public readonly find = ({
-    theater,
-    rank,
-    type,
-  }: {
-    theater?: THEATER;
-    rank?: number;
-    type?: CARD_TYPE_KEY;
-  }) => {
+  public readonly find = ({ theater, rank, type }: ICardDescriptor) => {
     const card = this.cards.find(
       card =>
         (theater === undefined || card.theater === theater) &&
@@ -187,7 +187,11 @@ export class Deck {
 
     if (!card) {
       throw new Error(
-        `Card of theather ${theater} and rank ${rank} does not exist in this deck`
+        `Card of ${[
+          theater ? `theater ${theater}` : '',
+          rank ? `rank ${rank}` : '',
+          type ? `type ${type}` : '',
+        ].join(' and ')} does not exist in this deck`
       );
     }
 
@@ -197,4 +201,32 @@ export class Deck {
   public static getStandard() {
     return new Deck(STANDARD_DECK_DATA);
   }
+
+  // Only for testing purposes
+  @action
+  public readonly moveToIndex = (
+    { theater, rank, type }: ICardDescriptor,
+    index: number
+  ) => {
+    const cardIndex = this.cards.findIndex(
+      card =>
+        (theater === undefined || card.theater === theater) &&
+        (rank === undefined || card.rank === rank) &&
+        (type === undefined || card.cardTypeKey === type)
+    );
+
+    if (cardIndex < 0) {
+      throw new Error(
+        `Card of ${[
+          theater ? `theater ${theater}` : '',
+          rank ? `rank ${rank}` : '',
+          type ? `type ${type}` : '',
+        ].join(' and ')} does not exist in this deck`
+      );
+    }
+
+    const temp = this.cards[index];
+    this.cards[index] = this.cards[cardIndex];
+    this.cards[cardIndex] = temp;
+  };
 }

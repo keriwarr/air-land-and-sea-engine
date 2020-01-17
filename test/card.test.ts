@@ -85,8 +85,16 @@ describe('Deck', () => {
       2 ** card.rank * 3 ** theaterIndex[card.theater];
     const cardSorter = (cardA: Readonly<Card>, cardB: Readonly<Card>) =>
       getCardValue(cardA) - getCardValue(cardB);
-    expect(deck1.cards.sort(cardSorter).map(cardMapper)).toEqual(
-      deck2.cards.sort(cardSorter).map(cardMapper)
+    expect(
+      deck1.cards
+        .slice()
+        .sort(cardSorter)
+        .map(cardMapper)
+    ).toEqual(
+      deck2.cards
+        .slice()
+        .sort(cardSorter)
+        .map(cardMapper)
     );
   });
 });
