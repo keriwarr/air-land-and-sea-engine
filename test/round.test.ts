@@ -42,7 +42,9 @@ describe('RoundState', () => {
       roundState.surrender();
       expect(() => {
         roundState.surrender();
-      }).toThrow();
+      }).toThrowErrorMatchingInlineSnapshot(
+        `"Can not play move: game is complete"`
+      );
     });
   });
 
@@ -290,7 +292,9 @@ describe('RoundState', () => {
               .getMove({ theater: THEATER.SEA }),
             { dryRun: true }
           );
-        }).toThrow();
+        }).toThrowErrorMatchingInlineSnapshot(
+          `"Played card doesn't match the theater it was played in"`
+        );
 
         expect(() => {
           roundState.playCard(
@@ -299,7 +303,9 @@ describe('RoundState', () => {
               .getMove({ theater: THEATER.AIR }),
             { dryRun: true }
           );
-        }).toThrow();
+        }).toThrowErrorMatchingInlineSnapshot(
+          `"Played card doesn't match the theater it was played in"`
+        );
 
         expect(() => {
           roundState.playCard(
@@ -308,7 +314,9 @@ describe('RoundState', () => {
               .getMove({ theater: THEATER.LAND }),
             { dryRun: true }
           );
-        }).toThrow();
+        }).toThrowErrorMatchingInlineSnapshot(
+          `"Played card doesn't match the theater it was played in"`
+        );
       });
 
       it("doesn't prevent playing in matching theaters", () => {
@@ -357,15 +365,7 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        expect(() => {
-          roundState.playDecision({
-            decision: {
-              type: DECISION_TYPE.FLIP_DECISION,
-              targetedPlayer: PLAYER.ONE,
-              theater: THEATER.AIR,
-            },
-          });
-        }).toThrow();
+        expect(roundState.anticipatedDecision).toBe(null);
       });
 
       it("can't flip over a card in a non-adjacent theater", () => {
@@ -375,50 +375,7 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        expect(() => {
-          roundState.playDecision(
-            {
-              decision: {
-                type: DECISION_TYPE.FLIP_DECISION,
-                targetedPlayer: PLAYER.TWO,
-                theater: THEATER.AIR,
-              },
-            },
-            {
-              dryRun: true,
-            }
-          );
-        }).toThrow();
-
-        expect(() => {
-          roundState.playDecision(
-            {
-              decision: {
-                type: DECISION_TYPE.FLIP_DECISION,
-                targetedPlayer: PLAYER.ONE,
-                theater: THEATER.SEA,
-              },
-            },
-            {
-              dryRun: true,
-            }
-          );
-        }).toThrow();
-
-        expect(() => {
-          roundState.playDecision(
-            {
-              decision: {
-                type: DECISION_TYPE.FLIP_DECISION,
-                targetedPlayer: PLAYER.TWO,
-                theater: THEATER.SEA,
-              },
-            },
-            {
-              dryRun: true,
-            }
-          );
-        }).toThrow();
+        expect(roundState.anticipatedDecision).toBe(null);
       });
 
       it('can filp over an allied card', () => {
@@ -619,7 +576,9 @@ describe('RoundState', () => {
               .getMove(),
             { dryRun: true }
           );
-        }).toThrow();
+        }).toThrowErrorMatchingInlineSnapshot(
+          `"Can not play a card when a decision is anticipated"`
+        );
       });
 
       it("doesn't anticipate decisions when played face down", () => {
@@ -1164,7 +1123,9 @@ describe('RoundState', () => {
     it("prevents playing cards that are not in the player's hand", () => {
       expect(() => {
         roundState.playCard(roundState.currentHandP2[0].getMove());
-      }).toThrow();
+      }).toThrowErrorMatchingInlineSnapshot(
+        `"Played card was not found in active players hand"`
+      );
 
       // TODO - I'd like to test this case too, but I'd need a way to
       // conveniently play whatever decisions are necessary after playing p1's
@@ -1172,7 +1133,7 @@ describe('RoundState', () => {
       // roundState.playCard(roundState.currentHandP1[0].getMove());
       // expect(() => {
       //   roundState.playCard(roundState.currentHandP1[0].getMove());
-      // }).toThrow();
+      // }).toThrowErrorMatchingInlineSnapshot();
     });
 
     it.todo('prevents playing cards face up to non-matching theaters');
