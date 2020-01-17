@@ -799,21 +799,143 @@ describe('RoundState', () => {
     });
 
     describe(CARD_TYPE_KEY.AMBUSH, () => {
-      it.todo('can flip over itself');
+      it('can flip over itself', () => {
+        roundState.allocateHands([descriptors.AMBUSH]);
+        roundState.playCardDescriptor(descriptors.AMBUSH);
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.LAND,
+        });
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Ambush-2 (flipped)",
+              ],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+          }
+        `);
+      });
 
-      it.todo('can flip over a card in an adjacent theater');
+      it('can flip over a card in an adjacent theater', () => {
+        roundState.allocateHands(
+          [descriptors.HEAVY_TANKS, descriptors.AMBUSH],
+          [descriptors.HEAVY_BOMBERS]
+        );
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.AMBUSH);
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.TWO,
+          theater: THEATER.AIR,
+        });
 
-      it.todo('can flip over a card in a non-adjacent theater');
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "AIR-Heavy Bombers-6 (flipped)",
+              ],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Ambush-2",
+                "LAND-Heavy Tanks-6",
+              ],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+          }
+        `);
+      });
 
-      it.todo('can filp over an allied card');
+      it('can flip over a card in a non-adjacent theater', () => {
+        roundState = new RoundState([THEATER.LAND, THEATER.AIR, THEATER.SEA]);
+        roundState.allocateHands(
+          [descriptors.SUPER_BATTLESHIP, descriptors.AMBUSH],
+          [descriptors.HEAVY_TANKS]
+        );
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.AMBUSH);
+        roundState.playFlipDecision(
+          {
+            targetedPlayer: PLAYER.ONE,
+            theater: THEATER.SEA,
+          },
+          { dryRun: true }
+        );
+        roundState.playFlipDecision(
+          {
+            targetedPlayer: PLAYER.TWO,
+            theater: THEATER.LAND,
+          },
+          { dryRun: true }
+        );
+      });
 
-      it.todo('can filp over an enemy card');
+      it('can be flipped over by a triggered effect', () => {
+        roundState.allocateHands(
+          [descriptors.SUPER_BATTLESHIP, descriptors.AMBUSH],
+          [descriptors.SEA_MANEUVER]
+        );
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.SEA_MANEUVER, {
+          faceUp: false,
+        });
+        roundState.playCardDescriptor(descriptors.AMBUSH);
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.TWO,
+          theater: THEATER.SEA,
+        });
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.LAND,
+        });
 
-      it.todo('can be flipped over by a triggered effect');
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Ambush-2 (flipped)",
+              ],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [
+                "SEA-Super Battleship-6",
+              ],
+              "TWO": Array [
+                "SEA-Maneuver-3",
+              ],
+            },
+          }
+        `);
+      });
 
-      it.todo('must always flip over a card');
+      it("doesn't anticipate a decision when played face down", () => {
+        roundState.allocateHands([descriptors.AMBUSH]);
+        roundState.playCardDescriptor(descriptors.AMBUSH, { faceUp: false });
 
-      it.todo("doesn't anticipate a decision when played face down");
+        expect(roundState.anticipatedDecision).toBe(null);
+      });
     });
 
     describe(CARD_TYPE_KEY.COVER_FIRE, () => {
