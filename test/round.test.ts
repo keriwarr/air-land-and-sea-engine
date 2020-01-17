@@ -232,32 +232,26 @@ describe('RoundState', () => {
             .getMove()
         );
 
-        expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-              .getMove({ theater: THEATER.LAND }),
-            { dryRun: true }
-          );
-        }).not.toThrow();
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+            .getMove({ theater: THEATER.LAND }),
+          { dryRun: true }
+        );
 
-        expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-              .getMove({ theater: THEATER.SEA }),
-            { dryRun: true }
-          );
-        }).not.toThrow();
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+            .getMove({ theater: THEATER.SEA }),
+          { dryRun: true }
+        );
 
-        expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-              .getMove({ theater: THEATER.AIR }),
-            { dryRun: true }
-          );
-        }).not.toThrow();
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+            .getMove({ theater: THEATER.AIR }),
+          { dryRun: true }
+        );
       });
 
       it.todo("doesn't override blockade");
@@ -328,32 +322,26 @@ describe('RoundState', () => {
           roundState.deck.find({ type: CARD_TYPE_KEY.COVER_FIRE }).getMove()
         );
 
-        expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
-              .getMove({ theater: THEATER.AIR }),
-            { dryRun: true }
-          );
-        }).not.toThrow();
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.AIR })
+            .getMove({ theater: THEATER.AIR }),
+          { dryRun: true }
+        );
 
-        expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
-              .getMove({ theater: THEATER.LAND }),
-            { dryRun: true }
-          );
-        }).not.toThrow();
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.LAND })
+            .getMove({ theater: THEATER.LAND }),
+          { dryRun: true }
+        );
 
-        expect(() => {
-          roundState.playCard(
-            roundState.deck
-              .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
-              .getMove({ theater: THEATER.SEA }),
-            { dryRun: true }
-          );
-        }).not.toThrow();
+        roundState.playCard(
+          roundState.deck
+            .find({ type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA })
+            .getMove({ theater: THEATER.SEA }),
+          { dryRun: true }
+        );
       });
     });
 
@@ -606,14 +594,12 @@ describe('RoundState', () => {
 
         [1, 2, 3].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
-            expect(() => {
-              roundState.playCard(
-                roundState.deck
-                  .find({ rank, theater })
-                  .getMove({ theater: getDifferentTheater(theater) }),
-                { dryRun: true }
-              );
-            }).not.toThrow();
+            roundState.playCard(
+              roundState.deck
+                .find({ rank, theater })
+                .getMove({ theater: getDifferentTheater(theater) }),
+              { dryRun: true }
+            );
           });
         });
       });
@@ -685,14 +671,12 @@ describe('RoundState', () => {
 
         [1, 2, 3].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
-            expect(() => {
-              roundState.playCard(
-                roundState.deck
-                  .find({ rank, theater })
-                  .getMove({ theater: getDifferentTheater(theater) }),
-                { dryRun: true }
-              );
-            }).not.toThrow();
+            roundState.playCard(
+              roundState.deck
+                .find({ rank, theater })
+                .getMove({ theater: getDifferentTheater(theater) }),
+              { dryRun: true }
+            );
           });
         });
       });
@@ -771,14 +755,12 @@ describe('RoundState', () => {
 
         [1, 2, 3].forEach(rank => {
           enumValues(THEATER).forEach(theater => {
-            expect(() => {
-              roundState.playCard(
-                roundState.deck
-                  .find({ rank, theater })
-                  .getMove({ theater: getDifferentTheater(theater) }),
-                { dryRun: true }
-              );
-            }).not.toThrow();
+            roundState.playCard(
+              roundState.deck
+                .find({ rank, theater })
+                .getMove({ theater: getDifferentTheater(theater) }),
+              { dryRun: true }
+            );
           });
         });
       });
