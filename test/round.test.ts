@@ -1066,7 +1066,9 @@ describe('RoundState', () => {
 
     it("prevents playing cards that are not in the player's hand", () => {
       expect(() => {
-        roundState.playCard(roundState.currentHandP2[0].getMove());
+        roundState.playCard(roundState.currentHandP2[0].getMove(), {
+          dryRun: true,
+        });
       }).toThrowErrorMatchingInlineSnapshot(
         `"Played card was not found in active players hand"`
       );

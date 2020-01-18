@@ -69,7 +69,7 @@ const CARD_TYPE: { readonly [K in CARD_TYPE_KEY]: ICardType } = {
     defaultName: 'Containment',
     effectType: CARD_EFFECT_TYPE.ONGOING,
     description:
-      'If either player players a Battle Card face-down, immediately discard that card',
+      'If either player players a Battle Card face-down, immediately discard that card.',
   },
   [CARD_TYPE_KEY.HEAVY]: {
     rank: 6,
