@@ -285,8 +285,6 @@ describe('RoundState', () => {
         `);
       });
 
-      it.todo("doesn't override containment");
-
       it('can be cancelled by flipping', () => {
         roundState.allocateHands(
           [
