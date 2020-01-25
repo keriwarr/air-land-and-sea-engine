@@ -248,7 +248,42 @@ describe('RoundState', () => {
         );
       });
 
-      it.todo("doesn't override blockade");
+      it("doesn't override blockade", () => {
+        roundState = new RoundState([THEATER.AIR, THEATER.SEA, THEATER.LAND]);
+
+        roundState.allocateHands(
+          [descriptors.AIR_DROP, descriptors.HEAVY_BOMBERS],
+          [descriptors.BLOCKADE]
+        );
+
+        roundState.playCardDescriptor(descriptors.AIR_DROP);
+        roundState.playCardDescriptor(descriptors.BLOCKADE);
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS, {
+          theater: THEATER.LAND,
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [
+                "AIR-Air Drop-2",
+              ],
+              "TWO": Array [],
+            },
+            "LAND": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "SEA-Blockade-5",
+              ],
+            },
+          }
+        `);
+      });
 
       it.todo("doesn't override containment");
 
