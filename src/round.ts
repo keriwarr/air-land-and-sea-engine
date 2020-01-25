@@ -32,11 +32,15 @@ export class RoundState {
   // this.startingHandP1 and this.startingHandP2
   public readonly allocateHands = (
     playerOne: ICardDescriptor[],
-    playerTwo: ICardDescriptor[] = []
+    playerTwo: ICardDescriptor[] = [],
+    deck: ICardDescriptor[] = []
   ) => {
     if (this.numMoves !== 0) {
       throw new Error('This method can only be used before moves are played');
     }
+    deck.forEach((cardDescriptor, index) => {
+      this.deck.moveToIndex(cardDescriptor, index + 12);
+    });
     playerOne.forEach((cardDescriptor, index) => {
       this.deck.moveToIndex(cardDescriptor, index * 2);
     });
