@@ -780,11 +780,15 @@ describe('RoundState', () => {
       });
 
       it.skip('does not override blockade', () => {
-        roundState = new RoundState([THEATER.LAND, THEATER.SEA, THEATER.AIR]);
+        roundState = new RoundState([THEATER.LAND, THEATER.AIR, THEATER.SEA]);
 
         roundState.allocateHands(
-          [descriptors.AIR_MANEUVER, descriptors.BLOCKADE],
-          [descriptors.SEA_MANEUVER, descriptors.REINFORCE],
+          [
+            descriptors.AIR_MANEUVER,
+            descriptors.BLOCKADE,
+            descriptors.REINFORCE,
+          ],
+          [descriptors.SEA_MANEUVER, descriptors.HEAVY_BOMBERS],
           [descriptors.LAND_MANEUVER]
         );
 
@@ -792,42 +796,47 @@ describe('RoundState', () => {
 
         roundState.playCardDescriptor(descriptors.SEA_MANEUVER, {
           faceUp: false,
-          theater: THEATER.SEA,
+          theater: THEATER.AIR,
         });
 
         roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
           faceUp: false,
-          theater: THEATER.SEA,
+          theater: THEATER.AIR,
+        });
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS, {
+          theater: THEATER.AIR,
         });
 
         roundState.playCardDescriptor(descriptors.REINFORCE);
-
         roundState.playReinforceDecision({
           made: {
-            theater: THEATER.SEA,
+            theater: THEATER.AIR,
           },
         });
 
         expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
           Object {
             "AIR": Object {
-              "ONE": Array [],
-              "TWO": Array [],
+              "ONE": Array [
+                "AIR-Maneuver-3 (flipped)",
+              ],
+              "TWO": Array [
+                "AIR-Heavy Bombers-6",
+                "SEA-Maneuver-3 (flipped)",
+              ],
             },
             "LAND": Object {
-              "ONE": Array [],
-              "TWO": Array [
+              "ONE": Array [
                 "LAND-Reinforce-1",
               ],
+              "TWO": Array [],
             },
             "SEA": Object {
               "ONE": Array [
-                "AIR-Maneuver-3 (flipped)",
                 "SEA-Blockade-5",
               ],
-              "TWO": Array [
-                "SEA-Maneuver-3 (flipped)",
-              ],
+              "TWO": Array [],
             },
           }
         `);
