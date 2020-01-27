@@ -252,13 +252,22 @@ describe('RoundState', () => {
         roundState = new RoundState([THEATER.AIR, THEATER.SEA, THEATER.LAND]);
 
         roundState.allocateHands(
-          [descriptors.AIR_DROP, descriptors.HEAVY_BOMBERS],
-          [descriptors.BLOCKADE]
+          [
+            descriptors.BLOCKADE,
+            descriptors.HEAVY_TANKS,
+            descriptors.COVER_FIRE,
+          ],
+          [descriptors.AIR_DROP, descriptors.HEAVY_BOMBERS, descriptors.DISRUPT]
         );
 
-        roundState.playCardDescriptor(descriptors.AIR_DROP);
         roundState.playCardDescriptor(descriptors.BLOCKADE);
-
+        roundState.playCardDescriptor(descriptors.DISRUPT, {
+          faceUp: false,
+          theater: THEATER.LAND,
+        });
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.AIR_DROP);
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
         roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS, {
           theater: THEATER.LAND,
         });
@@ -266,20 +275,25 @@ describe('RoundState', () => {
         expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
           Object {
             "AIR": Object {
-              "ONE": Array [
-                "AIR-Air Drop-2",
-              ],
-              "TWO": Array [],
-            },
-            "LAND": Object {
-              "ONE": Array [],
-              "TWO": Array [],
-            },
-            "SEA": Object {
               "ONE": Array [],
               "TWO": Array [
+                "AIR-Air Drop-2",
+              ],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Cover Fire-4",
+                "LAND-Heavy Tanks-6",
+              ],
+              "TWO": Array [
+                "LAND-Disrupt-5 (flipped)",
+              ],
+            },
+            "SEA": Object {
+              "ONE": Array [
                 "SEA-Blockade-5",
               ],
+              "TWO": Array [],
             },
           }
         `);
