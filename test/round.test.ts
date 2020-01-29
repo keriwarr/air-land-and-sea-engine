@@ -26,13 +26,13 @@ const descriptors = {
 };
 
 describe('RoundState', () => {
+  let roundState: RoundState;
+
+  beforeEach(() => {
+    roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
+  });
+
   describe('End Conditions', () => {
-    let roundState: RoundState;
-
-    beforeEach(() => {
-      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
-    });
-
     it('initially has no victor', () => {
       expect(roundState.victor).toBe(null);
       expect(roundState.complete).toBe(false);
@@ -65,12 +65,6 @@ describe('RoundState', () => {
   });
 
   describe('Cards Types', () => {
-    let roundState: RoundState;
-
-    beforeEach(() => {
-      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
-    });
-
     describe(CARD_TYPE_KEY.SUPPORT, () => {
       it('adds strength to the center theater', () => {
         roundState.allocateHands([descriptors.SUPPORT]);
@@ -1282,7 +1276,26 @@ describe('RoundState', () => {
 
   describe('Status Effects', () => {
     describe('Global Status Effects', () => {
-      it.todo('has a status effect when Containment is played');
+      it('has a status effect when Containment is played', () => {
+        roundState.allocateHands(
+          [descriptors.CONTAINMENT],
+          [descriptors.AMBUSH]
+        );
+
+        expect(roundState.globalEffects.length).toBe(0);
+
+        roundState.playCardDescriptor(descriptors.CONTAINMENT);
+
+        expect(roundState.globalEffects).toEqual([CARD_TYPE_KEY.CONTAINMENT]);
+
+        roundState.playCardDescriptor(descriptors.AMBUSH);
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
+        });
+
+        expect(roundState.globalEffects.length).toBe(0);
+      });
     });
 
     describe('Player Status Effects', () => {

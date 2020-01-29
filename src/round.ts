@@ -899,6 +899,27 @@ export class RoundState {
     { keepAlive: true }
   );
 
+  readonly momentaryGlobalEffects = computedFn(
+    (moveCount: number) => {
+      const containmentInEffect = this.deck.cards
+        .filter(card => card.cardTypeKey === CARD_TYPE_KEY.CONTAINMENT)
+        .reduce(
+          (someFaceUp, containmentCard) =>
+            someFaceUp ||
+            !!this.momentaryCardFaceUp(moveCount, containmentCard.id),
+          false
+        );
+
+      return [...(containmentInEffect ? [CARD_TYPE_KEY.CONTAINMENT] : [])];
+    },
+    { keepAlive: true }
+  );
+
+  @computed
+  get globalEffects() {
+    return this.momentaryGlobalEffects(this.numMoves);
+  }
+
   @computed
   get complete() {
     return (
