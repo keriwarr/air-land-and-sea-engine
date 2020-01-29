@@ -248,9 +248,56 @@ describe('RoundState', () => {
         );
       });
 
-      it.todo("doesn't override blockade");
+      it.skip("doesn't override blockade", () => {
+        roundState = new RoundState([THEATER.AIR, THEATER.SEA, THEATER.LAND]);
 
-      it.todo("doesn't override containment");
+        roundState.allocateHands(
+          [
+            descriptors.BLOCKADE,
+            descriptors.HEAVY_TANKS,
+            descriptors.COVER_FIRE,
+          ],
+          [descriptors.AIR_DROP, descriptors.HEAVY_BOMBERS, descriptors.DISRUPT]
+        );
+
+        roundState.playCardDescriptor(descriptors.BLOCKADE);
+        roundState.playCardDescriptor(descriptors.DISRUPT, {
+          faceUp: false,
+          theater: THEATER.LAND,
+        });
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.AIR_DROP);
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS, {
+          theater: THEATER.LAND,
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "AIR-Air Drop-2",
+              ],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Cover Fire-4",
+                "LAND-Heavy Tanks-6",
+              ],
+              "TWO": Array [
+                "LAND-Disrupt-5 (flipped)",
+              ],
+            },
+            "SEA": Object {
+              "ONE": Array [
+                "SEA-Blockade-5",
+              ],
+              "TWO": Array [],
+            },
+          }
+        `);
+      });
 
       it('can be cancelled by flipping', () => {
         roundState.allocateHands(
@@ -709,7 +756,105 @@ describe('RoundState', () => {
         );
       });
 
-      it.todo('can add a card that is immediately discarded');
+      it.skip('does not override containment', () => {
+        roundState.allocateHands(
+          [descriptors.CONTAINMENT],
+          [descriptors.REINFORCE]
+        );
+
+        roundState.playCardDescriptor(descriptors.CONTAINMENT);
+        roundState.playCardDescriptor(descriptors.REINFORCE);
+
+        roundState.playReinforceDecision({
+          made: {
+            theater: THEATER.AIR,
+          },
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [
+                "AIR-Containment-5",
+              ],
+              "TWO": Array [],
+            },
+            "LAND": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "LAND-Reinforce-1",
+              ],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+          }
+        `);
+      });
+
+      it.skip('does not override blockade', () => {
+        roundState = new RoundState([THEATER.LAND, THEATER.AIR, THEATER.SEA]);
+
+        roundState.allocateHands(
+          [
+            descriptors.AIR_MANEUVER,
+            descriptors.BLOCKADE,
+            descriptors.REINFORCE,
+          ],
+          [descriptors.SEA_MANEUVER, descriptors.HEAVY_BOMBERS],
+          [descriptors.LAND_MANEUVER]
+        );
+
+        roundState.playCardDescriptor(descriptors.BLOCKADE);
+
+        roundState.playCardDescriptor(descriptors.SEA_MANEUVER, {
+          faceUp: false,
+          theater: THEATER.AIR,
+        });
+
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
+          faceUp: false,
+          theater: THEATER.AIR,
+        });
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS, {
+          theater: THEATER.AIR,
+        });
+
+        roundState.playCardDescriptor(descriptors.REINFORCE);
+        roundState.playReinforceDecision({
+          made: {
+            theater: THEATER.AIR,
+          },
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [
+                "AIR-Maneuver-3 (flipped)",
+              ],
+              "TWO": Array [
+                "AIR-Heavy Bombers-6",
+                "SEA-Maneuver-3 (flipped)",
+              ],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Reinforce-1",
+              ],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [
+                "SEA-Blockade-5",
+              ],
+              "TWO": Array [],
+            },
+          }
+        `);
+      });
 
       it('allows choosing not to reinforce', () => {
         roundState.allocateHands([descriptors.REINFORCE]);
