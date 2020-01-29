@@ -1301,14 +1301,152 @@ describe('RoundState', () => {
     describe('Player Status Effects', () => {
       it.todo('has a status effect when Air Drop is played');
 
+      it.todo(
+        "doesn't have an Air Drop status effect two turns after it's played"
+      );
+
       it.todo('has a status effect when Escalation is played');
 
       it.todo('has a status effect when Aerodrome is played');
     });
 
     describe('Theater Status Effects', () => {
-      it.todo('has a status effect when Blockade is played');
+      it('has a status effect when Blockade is played and three or more cards are present', () => {
+        roundState = new RoundState([THEATER.AIR, THEATER.SEA, THEATER.LAND]);
+        roundState.allocateHands(
+          [
+            descriptors.BLOCKADE,
+            descriptors.COVER_FIRE,
+            descriptors.SUPER_BATTLESHIP,
+            descriptors.AIR_DROP,
+            descriptors.TRANSPORT,
+          ],
+          [
+            descriptors.HEAVY_TANKS,
+            descriptors.AMBUSH,
+            descriptors.HEAVY_BOMBERS,
+            descriptors.AIR_MANEUVER,
+          ]
+        );
 
+        roundState.playCardDescriptor(descriptors.BLOCKADE);
+
+        expect(roundState.theaterEffectsMap).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Array [],
+            "LAND": Array [],
+            "SEA": Array [],
+          }
+        `);
+
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+
+        expect(roundState.theaterEffectsMap).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Array [],
+            "LAND": Array [],
+            "SEA": Array [],
+          }
+        `);
+
+        roundState.playCardDescriptor(descriptors.AMBUSH, { faceUp: false });
+
+        expect(roundState.theaterEffectsMap).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Array [],
+            "LAND": Array [
+              "BLOCKADE",
+            ],
+            "SEA": Array [],
+          }
+        `);
+
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.AIR_DROP);
+
+        expect(roundState.theaterEffectsMap).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Array [],
+            "LAND": Array [
+              "BLOCKADE",
+            ],
+            "SEA": Array [],
+          }
+        `);
+
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
+          faceUp: false,
+        });
+
+        expect(roundState.theaterEffectsMap).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Array [
+              "BLOCKADE",
+            ],
+            "LAND": Array [
+              "BLOCKADE",
+            ],
+            "SEA": Array [],
+          }
+        `);
+
+        // using air drop effect here tsk tsk
+        roundState.playCardDescriptor(descriptors.TRANSPORT, {
+          theater: THEATER.SEA,
+        });
+        roundState.playTransportDecision({
+          made: {
+            originTheater: THEATER.AIR,
+            originIndexFromTop: 0,
+            destinationTheater: THEATER.LAND,
+          },
+        });
+
+        expect(roundState.theaterEffectsMap).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Array [],
+            "LAND": Array [
+              "BLOCKADE",
+            ],
+            "SEA": Array [],
+          }
+        `);
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "AIR-Maneuver-3 (flipped)",
+                "AIR-Heavy Bombers-6",
+              ],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "AIR-Air Drop-2",
+                "LAND-Cover Fire-4",
+              ],
+              "TWO": Array [
+                "LAND-Ambush-2 (flipped)",
+                "LAND-Heavy Tanks-6",
+              ],
+            },
+            "SEA": Object {
+              "ONE": Array [
+                "SEA-Transport-1",
+                "SEA-Super Battleship-6",
+                "SEA-Blockade-5",
+              ],
+              "TWO": Array [],
+            },
+          }
+        `);
+      });
+    });
+
+    describe('Player Theater Status Effects', () => {
       it.todo('has a status effect when Support is played');
     });
   });

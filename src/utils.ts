@@ -63,3 +63,10 @@ export const exhaustiveSwitch = ({
     errorMessage || `Received invalid switch value: \`${switchValue}\`.`
   );
 };
+
+type NotNull<T> = T extends null ? never : T;
+export const isNotNull = <T>(arg: T): arg is NotNull<T> => arg !== null;
+
+type NotUndefined<T> = T extends undefined ? never : T;
+export const isNotUndefined = <T>(arg: T): arg is NotUndefined<T> =>
+  arg !== undefined;

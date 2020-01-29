@@ -1,5 +1,11 @@
 import { Card, Deck, ICardDescriptor } from './card';
-import { exhaustiveSwitch, mapValues, keyBy } from './utils';
+import {
+  exhaustiveSwitch,
+  mapValues,
+  keyBy,
+  mapToObject,
+  isNotNull,
+} from './utils';
 import { computed, action } from 'mobx';
 import { computedFn } from 'mobx-utils';
 import { IMove, MOVE_TYPE, MoveState, ICardMove, IDecisionMove } from './move';
@@ -919,6 +925,47 @@ export class RoundState {
   get globalEffects() {
     return this.momentaryGlobalEffects(this.numMoves);
   }
+
+  readonly momentaryTheaterEffectsMap = computedFn((moveCount: number) => {
+    const blockadedTheaters = this.deck.cards
+      .filter(card => card.cardTypeKey === CARD_TYPE_KEY.BLOCKADE)
+      .filter(card => !!this.momentaryCardFaceUp(moveCount, card.id))
+      .map(card => this.momentaryCardLocation(moveCount, card.id))
+      .filter(isNotNull)
+      .map(location => this.getAdjacentTheaters(location.theater))
+      .reduce((flat, theaters) => [...flat, ...theaters], [])
+      .filter(theater => {
+        const p1CardCount = this.momentaryBoardState(moveCount)[theater][
+          PLAYER.ONE
+        ].length;
+        const p2CardCount = this.momentaryBoardState(moveCount)[theater][
+          PLAYER.TWO
+        ].length;
+
+        return p1CardCount + p2CardCount >= 3;
+      });
+
+    return mapToObject(THEATERS, theater => {
+      const theaterIsBlockaded = blockadedTheaters.includes(theater);
+
+      return [...(theaterIsBlockaded ? [CARD_TYPE_KEY.BLOCKADE] : [])];
+    });
+  });
+
+  @computed({ keepAlive: true })
+  get theaterEffectsMap() {
+    return this.momentaryTheaterEffectsMap(this.numMoves);
+  }
+
+  readonly momentaryTheaterEffects = computedFn(
+    (moveCount: number, theater: THEATER) => {
+      return this.momentaryTheaterEffectsMap(moveCount)[theater];
+    }
+  );
+
+  readonly theaterEffects = computedFn((theater: THEATER) => {
+    return this.momentaryTheaterEffects(this.numMoves, theater);
+  });
 
   @computed
   get complete() {
