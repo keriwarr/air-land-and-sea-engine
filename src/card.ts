@@ -204,7 +204,7 @@ export class Deck {
 
   // Only for testing purposes
   @action
-  public readonly moveToIndex = (
+  public readonly swapToIndex = (
     { theater, rank, type }: ICardDescriptor,
     index: number
   ) => {

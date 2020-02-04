@@ -45,13 +45,13 @@ export class RoundState {
       throw new Error('This method can only be used before moves are played');
     }
     deck.forEach((cardDescriptor, index) => {
-      this.deck.moveToIndex(cardDescriptor, index + 12);
+      this.deck.swapToIndex(cardDescriptor, index + 12);
     });
     playerOne.forEach((cardDescriptor, index) => {
-      this.deck.moveToIndex(cardDescriptor, index * 2);
+      this.deck.swapToIndex(cardDescriptor, index * 2);
     });
     playerTwo.forEach((cardDescriptor, index) => {
-      this.deck.moveToIndex(cardDescriptor, index * 2 + 1);
+      this.deck.swapToIndex(cardDescriptor, index * 2 + 1);
     });
   };
 
