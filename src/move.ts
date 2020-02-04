@@ -23,7 +23,7 @@ export interface IDecisionMove extends IGenericMove<MOVE_TYPE.DECISION> {
   decision: IDecision;
 }
 
-interface ISurrenderMove extends IGenericMove<MOVE_TYPE.SURRENDER> {}
+export interface ISurrenderMove extends IGenericMove<MOVE_TYPE.SURRENDER> {}
 
 export type IMove = ISurrenderMove | ICardMove | IDecisionMove;
 
@@ -59,4 +59,8 @@ export class MoveState {
     this.moves.push(box);
     this.internalNumMoves += 1;
   };
+
+  public toJSON() {
+    return this.moves.slice(0, this.numMoves).map(move => move.get());
+  }
 }

@@ -1465,4 +1465,59 @@ describe('RoundState', () => {
   });
 
   describe('Full Game Examples', () => {});
+
+  describe('Import/Export', () => {
+    it('Exports a complete history of the round to JSON', () => {
+      roundState = new RoundState([THEATER.AIR, THEATER.SEA, THEATER.LAND]);
+      roundState.allocateHands(
+        [
+          descriptors.BLOCKADE,
+          descriptors.COVER_FIRE,
+          descriptors.SUPER_BATTLESHIP,
+          descriptors.AIR_DROP,
+          descriptors.TRANSPORT,
+          descriptors.AERODROME,
+        ],
+        [
+          descriptors.HEAVY_TANKS,
+          descriptors.AMBUSH,
+          descriptors.HEAVY_BOMBERS,
+          descriptors.AIR_MANEUVER,
+          descriptors.LAND_MANEUVER,
+          descriptors.CONTAINMENT,
+        ],
+        [
+          descriptors.SEA_MANEUVER,
+          descriptors.ESCALATION,
+          descriptors.DISRUPT,
+          descriptors.REDEPLOY,
+          descriptors.SUPPORT,
+          descriptors.REINFORCE,
+        ]
+      );
+
+      roundState.playCardDescriptor(descriptors.BLOCKADE);
+      roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+      roundState.playCardDescriptor(descriptors.COVER_FIRE);
+      roundState.playCardDescriptor(descriptors.AMBUSH, { faceUp: false });
+      roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+      roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+      roundState.playCardDescriptor(descriptors.AIR_DROP);
+      roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
+        faceUp: false,
+      });
+      roundState.playCardDescriptor(descriptors.TRANSPORT, {
+        theater: THEATER.SEA,
+      });
+      roundState.playTransportDecision({
+        made: {
+          originTheater: THEATER.AIR,
+          originIndexFromTop: 0,
+          destinationTheater: THEATER.LAND,
+        },
+      });
+
+      expect(roundState.toJSON()).toMatchSnapshot();
+    });
+  });
 });

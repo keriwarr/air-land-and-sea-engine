@@ -33,6 +33,13 @@ export class RoundState {
     private readonly opts: { disableHandContainsCheck?: boolean } = {}
   ) {}
 
+  public toJSON() {
+    return {
+      deck: this.deck.cards.map(card => card.toJSON()),
+      moves: this.moveState.toJSON(),
+    };
+  }
+
   // for testing only
   // note that this is currently coupled to the implementations of
   // this.startingHandP1 and this.startingHandP2

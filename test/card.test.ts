@@ -5,32 +5,42 @@ import { CARD_TYPE_KEY } from '../src/cardType';
 
 describe('Card', () => {
   it('can be instantiated', () => {
-    new Card({
-      cardTypeKey: CARD_TYPE_KEY.SUPPORT,
-      theater: THEATER.AIR,
-    });
+    new Card(
+      {
+        cardTypeKey: CARD_TYPE_KEY.SUPPORT,
+        theater: THEATER.AIR,
+      },
+      1
+    );
   });
 
   it('can not be instantiated with invalid theater', () => {
     expect(() => {
-      new Card({
-        cardTypeKey: CARD_TYPE_KEY.SUPPORT,
-        theater: THEATER.LAND,
-      });
+      new Card(
+        {
+          cardTypeKey: CARD_TYPE_KEY.SUPPORT,
+          theater: THEATER.LAND,
+        },
+        1
+      );
     }).toThrow();
   });
 
   it('can be serialized as JSON', () => {
     expect(
-      new Card({
-        cardTypeKey: CARD_TYPE_KEY.SUPPORT,
-        theater: THEATER.AIR,
-      }).toJSON()
+      new Card(
+        {
+          cardTypeKey: CARD_TYPE_KEY.SUPPORT,
+          theater: THEATER.AIR,
+        },
+        1
+      ).toJSON()
     ).toMatchInlineSnapshot(`
       Object {
         "cardTypeKey": "SUPPORT",
         "description": "You gain +3 strength in each adjacent theater.",
         "effectType": "ONGOING",
+        "id": 1,
         "name": "Support",
         "rank": 1,
         "theater": "AIR",

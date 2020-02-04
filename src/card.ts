@@ -94,9 +94,7 @@ export class Card {
 
   public readonly theater: ICard['theater'];
 
-  private static cardIdCounter = 1;
-
-  public constructor(card: ICard) {
+  public constructor(card: ICard, id: number) {
     const cardType = CardType.byKey[card.cardTypeKey];
 
     if (cardType.theater && cardType.theater !== card.theater) {
@@ -105,8 +103,7 @@ export class Card {
       );
     }
 
-    this.id = Card.cardIdCounter;
-    Card.cardIdCounter += 1;
+    this.id = id;
     this.cardType = cardType;
     this.theater = card.theater;
     this.customName = card.name;
@@ -134,6 +131,7 @@ export class Card {
 
   public toJSON() {
     return {
+      id: this.id,
       cardTypeKey: this.cardTypeKey,
       name: this.name,
       rank: this.rank,
@@ -170,7 +168,9 @@ export class Deck {
   public readonly byId: { [id: number]: Readonly<Card> };
 
   constructor(cardData: ICard[]) {
-    this.cards = cardData.map(datum => Object.freeze(new Card(datum)));
+    this.cards = cardData.map((datum, index) =>
+      Object.freeze(new Card(datum, index + 1))
+    );
     shuffle(this.cards);
     this.byId = keyBy(this.cards, card => card.id);
   }
