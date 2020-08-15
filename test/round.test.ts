@@ -88,7 +88,6 @@ describe('RoundState', () => {
     });
 
     it("doesn't have a victor if a decision is anticipated", () => {
-      roundState = new RoundState([THEATER.AIR, THEATER.SEA, THEATER.LAND]);
       roundState.allocateHands(
         [
           descriptors.BLOCKADE,
@@ -134,8 +133,9 @@ describe('RoundState', () => {
       expect(roundState.victor).toBe(null);
       expect(roundState.complete).toBe(false);
 
+      // flip over the cover fire
       roundState.playFlipDecision({
-        theater: THEATER.AIR,
+        theater: THEATER.LAND,
         targetedPlayer: PLAYER.ONE,
       });
 
@@ -1370,34 +1370,319 @@ describe('RoundState', () => {
           ]
         `);
       });
+
+      it("doesn't strengthen cards above it", () => {
+        roundState.allocateHands(
+          [descriptors.COVER_FIRE, descriptors.REINFORCE],
+          [descriptors.HEAVY_BOMBERS]
+        );
+
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+
+        roundState.playCardDescriptor(descriptors.REINFORCE);
+        roundState.playReinforceDecision({ made: null });
+
+        expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
+          Array [
+            Object {
+              "ONE": 0,
+              "TWO": 6,
+              "theater": "AIR",
+            },
+            Object {
+              "ONE": 5,
+              "TWO": 0,
+              "theater": "LAND",
+            },
+            Object {
+              "ONE": 0,
+              "TWO": 0,
+              "theater": "SEA",
+            },
+          ]
+        `);
+      });
     });
 
     describe(CARD_TYPE_KEY.DISRUPT, () => {
-      it.todo('causes two decisions to be enqueued');
+      it('causes two decisions to be enqueued', () => {
+        roundState.allocateHands(
+          [descriptors.HEAVY_TANKS, descriptors.DISRUPT],
+          [descriptors.SUPER_BATTLESHIP]
+        );
 
-      it.todo('can cause the opponent to flip a card in any theater');
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.DISRUPT);
 
-      it.todo("let's the opponent choose which card to flip");
+        expect(roundState.anticipatedDecisionsStack).toHaveLength(2);
+      });
 
-      it.todo('requires the opponent to flip a card if able');
+      // broken. `getAnticipatedDecisions` doesn't consider board state
+      it.skip("doesn't anticipate a decision from the opponent if they haven't played any cards", () => {
+        roundState.allocateHands([descriptors.DISRUPT]);
 
-      it.todo('allows the opponent to flip a card in any theater');
+        roundState.playCardDescriptor(descriptors.DISRUPT);
 
-      it.todo(
-        'resovles the effects of the opponents flip before proceeding to your flip'
-      );
+        expect(roundState.anticipatedDecisionsStack).toHaveLength(1);
+      });
 
-      it.todo("then let's you choose which card to flip");
+      it('anticipates a decision from the opponent first', () => {
+        roundState.allocateHands(
+          [descriptors.HEAVY_TANKS, descriptors.DISRUPT],
+          [descriptors.SUPER_BATTLESHIP]
+        );
 
-      it.todo('requires you to flip a card');
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.DISRUPT);
 
-      it.todo('it allows you to flip a card in any theater');
+        expect(roundState.anticipatedDecision?.player).toBe(PLAYER.TWO);
+      });
 
-      it.todo('can flip over a card in a non-adjacent theater');
+      it('anticipates a decision from your self second', () => {
+        roundState.allocateHands(
+          [descriptors.SUPER_BATTLESHIP, descriptors.DISRUPT],
+          [descriptors.HEAVY_TANKS]
+        );
 
-      it.todo('can be cancelled by being flipped over mid-effect');
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.DISRUPT);
 
-      it.todo("doesn't anticipate a decision when played face down");
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.TWO,
+          theater: THEATER.SEA,
+        });
+
+        expect(roundState.anticipatedDecision?.player).toBe(PLAYER.ONE);
+      });
+
+      it('allows the opponent to flip a card in any theater', () => {
+        roundState.allocateHands(
+          [
+            descriptors.SUPPORT,
+            descriptors.COVER_FIRE,
+            descriptors.SEA_MANEUVER,
+            descriptors.DISRUPT,
+          ],
+          [
+            descriptors.HEAVY_BOMBERS,
+            descriptors.HEAVY_TANKS,
+            descriptors.SUPER_BATTLESHIP,
+          ]
+        );
+
+        roundState.playCardDescriptor(descriptors.SUPPORT);
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.SEA_MANEUVER, {
+          faceUp: false,
+        });
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.DISRUPT);
+
+        enumValues(THEATER).forEach(theater => {
+          expect(() => {
+            roundState.playFlipDecision(
+              {
+                targetedPlayer: PLAYER.TWO,
+                theater,
+              },
+              { dryRun: true }
+            );
+          }).not.toThrow();
+        });
+      });
+
+      it('resovles the effects of the opponents flip before proceeding to your flip', () => {
+        roundState.allocateHands(
+          [descriptors.HEAVY_BOMBERS, descriptors.DISRUPT],
+          [descriptors.LAND_MANEUVER]
+        );
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.LAND_MANEUVER, {
+          faceUp: false,
+        });
+        roundState.playCardDescriptor(descriptors.DISRUPT);
+
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.TWO,
+          theater: THEATER.LAND,
+        });
+
+        expect(roundState.anticipatedDecisionsStack).toMatchInlineSnapshot(`
+          Array [
+            Object {
+              "player": "TWO",
+              "promptingMoveIndex": 3,
+              "type": "FLIP_DECISION",
+            },
+            Object {
+              "player": "ONE",
+              "promptingMoveIndex": 2,
+              "type": "FLIP_DECISION",
+            },
+          ]
+        `);
+
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.AIR,
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [
+                "AIR-Heavy Bombers-6 (flipped)",
+              ],
+              "TWO": Array [],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Disrupt-5",
+              ],
+              "TWO": Array [
+                "LAND-Maneuver-3",
+              ],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+          }
+        `);
+
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: descriptors.HEAVY_BOMBERS.theater,
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [
+                "AIR-Heavy Bombers-6",
+              ],
+              "TWO": Array [],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Disrupt-5",
+              ],
+              "TWO": Array [
+                "LAND-Maneuver-3",
+              ],
+            },
+            "SEA": Object {
+              "ONE": Array [],
+              "TWO": Array [],
+            },
+          }
+        `);
+      });
+
+      it('it allows you to flip a card in any theater', () => {
+        roundState.allocateHands(
+          [
+            descriptors.HEAVY_BOMBERS,
+            descriptors.HEAVY_TANKS,
+            descriptors.SUPER_BATTLESHIP,
+            descriptors.DISRUPT,
+          ],
+          [
+            descriptors.SUPPORT,
+            descriptors.COVER_FIRE,
+            descriptors.SEA_MANEUVER,
+          ]
+        );
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.SUPPORT);
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.SEA_MANEUVER, {
+          faceUp: false,
+        });
+        roundState.playCardDescriptor(descriptors.DISRUPT);
+
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.TWO,
+          theater: THEATER.AIR,
+        });
+
+        enumValues(THEATER).forEach(theater => {
+          expect(() => {
+            roundState.playFlipDecision(
+              {
+                targetedPlayer: PLAYER.ONE,
+                theater,
+              },
+              { dryRun: true }
+            );
+          }).not.toThrow();
+        });
+      });
+
+      // broken. might be tough to fix
+      it.skip('can be cancelled by being flipped over mid-effect', () => {
+        roundState.allocateHands(
+          [descriptors.HEAVY_BOMBERS, descriptors.DISRUPT],
+          [descriptors.AIR_MANEUVER]
+        );
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
+          faceUp: false,
+        });
+        roundState.playCardDescriptor(descriptors.DISRUPT);
+
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.TWO,
+          theater: THEATER.AIR,
+        });
+
+        expect(roundState.anticipatedDecisionsStack).toMatchInlineSnapshot(`
+          Array [
+            Object {
+              "player": "TWO",
+              "promptingMoveIndex": 3,
+              "type": "FLIP_DECISION",
+            },
+            Object {
+              "player": "ONE",
+              "promptingMoveIndex": 2,
+              "type": "FLIP_DECISION",
+            },
+          ]
+        `);
+
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.LAND,
+        });
+
+        expect(roundState.anticipatedDecision).toBe(null);
+      });
+
+      it("doesn't anticipate a decision when played face down", () => {
+        roundState.allocateHands(
+          [descriptors.HEAVY_BOMBERS, descriptors.DISRUPT],
+          [descriptors.HEAVY_TANKS]
+        );
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+        roundState.playCardDescriptor(descriptors.DISRUPT, { faceUp: false });
+
+        expect(roundState.anticipatedDecision).toBe(null);
+      });
     });
 
     describe(CARD_TYPE_KEY.TRANSPORT, () => {

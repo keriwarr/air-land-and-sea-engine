@@ -54,6 +54,10 @@ export interface IAnticipatedDecision {
   promptingMoveIndex: number;
 }
 
+/**
+ * the anticipated decisions are returned in order of anticipation. i.e. the
+ * zeroeth decition is the one that we anticipate to be made next.
+ */
 export const getAnticipatedDecisions = (
   cardTypeKey: CARD_TYPE_KEY,
   player: PLAYER,
@@ -86,11 +90,11 @@ export const getAnticipatedDecisions = (
       }
       case CARD_TYPE_KEY.DISRUPT:
         return [
-          { type: DECISION_TYPE.FLIP_DECISION, player },
           {
             type: DECISION_TYPE.FLIP_DECISION,
             player: getOtherPlayer(player),
           },
+          { type: DECISION_TYPE.FLIP_DECISION, player },
         ];
       case CARD_TYPE_KEY.REDEPLOY: {
         const playerCardStates = enumValues(THEATER)

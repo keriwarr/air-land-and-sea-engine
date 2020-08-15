@@ -322,70 +322,73 @@ export class RoundState {
     { keepAlive: true }
   );
 
-  readonly momentaryEffectiveStrengths = computedFn((moveCount: number) => {
-    const startingPoint = mapValues(this.deck.byId, card => card.rank);
+  readonly momentaryEffectiveStrengths = computedFn(
+    (moveCount: number) => {
+      const startingPoint = mapValues(this.deck.byId, card => card.rank);
 
-    const theaters = this.momentaryIterableTheaters(moveCount);
+      const theaters = this.momentaryIterableTheaters(moveCount);
 
-    const p1FlippedCardIds: number[] = [];
-    const p2FlippedCardIds: number[] = [];
-    let p1Escalated = false;
-    let p2Escalated = false;
-    theaters.forEach(({ player, cards }) => {
-      if (player === PLAYER.ONE) {
-        p1FlippedCardIds.push(
-          ...cards.filter(({ faceUp }) => !faceUp).map(({ card }) => card.id)
+      const p1FlippedCardIds: number[] = [];
+      const p2FlippedCardIds: number[] = [];
+      let p1Escalated = false;
+      let p2Escalated = false;
+      theaters.forEach(({ player, cards }) => {
+        if (player === PLAYER.ONE) {
+          p1FlippedCardIds.push(
+            ...cards.filter(({ faceUp }) => !faceUp).map(({ card }) => card.id)
+          );
+        } else {
+          p2FlippedCardIds.push(
+            ...cards.filter(({ faceUp }) => !faceUp).map(({ card }) => card.id)
+          );
+        }
+
+        cards.forEach(({ card, faceUp }) => {
+          if (!faceUp) {
+            startingPoint[card.id] = 2;
+          }
+        });
+
+        if (
+          cards.findIndex(
+            ({ card, faceUp }) =>
+              card.cardTypeKey === CARD_TYPE_KEY.ESCALATION && faceUp
+          ) > -1
+        ) {
+          if (player === PLAYER.ONE) {
+            p1Escalated = true;
+          } else {
+            p2Escalated = true;
+          }
+        }
+
+        const coverFireIndex = cards.findIndex(
+          ({ card, faceUp }) =>
+            card.cardTypeKey === CARD_TYPE_KEY.COVER_FIRE && faceUp
         );
-      } else {
-        p2FlippedCardIds.push(
-          ...cards.filter(({ faceUp }) => !faceUp).map(({ card }) => card.id)
-        );
-      }
-
-      cards.forEach(({ card, faceUp }) => {
-        if (!faceUp) {
-          startingPoint[card.id] = 2;
+        if (coverFireIndex > -1) {
+          cards.slice(coverFireIndex + 1).forEach(({ card }) => {
+            startingPoint[card.id] = 4;
+          });
         }
       });
 
-      if (
-        cards.findIndex(
-          ({ card, faceUp }) =>
-            card.cardTypeKey === CARD_TYPE_KEY.ESCALATION && faceUp
-        ) > -1
-      ) {
-        if (player === PLAYER.ONE) {
-          p1Escalated = true;
-        } else {
-          p2Escalated = true;
-        }
-      }
-
-      const coverFireIndex = cards.findIndex(
-        ({ card, faceUp }) =>
-          card.cardTypeKey === CARD_TYPE_KEY.COVER_FIRE && faceUp
-      );
-      if (coverFireIndex > -1) {
-        cards.slice(coverFireIndex + 1).forEach(({ card }) => {
-          startingPoint[card.id] = 4;
+      if (p1Escalated) {
+        p1FlippedCardIds.forEach(cardId => {
+          startingPoint[cardId] = 4;
         });
       }
-    });
 
-    if (p1Escalated) {
-      p1FlippedCardIds.forEach(cardId => {
-        startingPoint[cardId] = 4;
-      });
-    }
+      if (p2Escalated) {
+        p2FlippedCardIds.forEach(cardId => {
+          startingPoint[cardId] = 4;
+        });
+      }
 
-    if (p2Escalated) {
-      p2FlippedCardIds.forEach(cardId => {
-        startingPoint[cardId] = 4;
-      });
-    }
-
-    return startingPoint;
-  });
+      return startingPoint;
+    },
+    { keepAlive: true }
+  );
 
   readonly momentaryTheaterStrengths = computedFn(
     (moveCount: number): IBoardState<number> => {
@@ -424,7 +427,8 @@ export class RoundState {
 
         return theaterStrengths;
       });
-    }
+    },
+    { keepAlive: true }
   );
 
   @computed
@@ -452,7 +456,8 @@ export class RoundState {
         return PLAYER.ONE;
       }
       return PLAYER.TWO;
-    }
+    },
+    { keepAlive: true }
   );
 
   readonly momentaryTheatersControlled = computedFn(
@@ -460,7 +465,8 @@ export class RoundState {
       return THEATERS.map(theater =>
         this.momentaryTheaterController(moveCount, theater)
       ).filter(controller => controller === player).length;
-    }
+    },
+    { keepAlive: true }
   );
 
   @computed
@@ -538,12 +544,10 @@ export class RoundState {
       // I should re do this my measuring how many turns each player has taken
       // so far, and comparing that to how many they should have taken w.r.t. redeploy
 
-      const anticipatedMoves = this.momentaryAnticipatedDecisionsStack(
-        moveCount
-      );
+      const anticipatedMove = this.momentaryAnticipatedDecision(moveCount);
 
-      if (anticipatedMoves.length > 0) {
-        return anticipatedMoves[anticipatedMoves.length - 1].player;
+      if (anticipatedMove !== null) {
+        return anticipatedMove.player;
       }
 
       const turnOrderIsToggledNow = this.turnOrderToggledByRedeploy(moveCount);
@@ -562,9 +566,14 @@ export class RoundState {
       }
 
       return getOtherPlayer(lastPlayerForMove);
-    }
+    },
+    { keepAlive: true }
   );
 
+  /**
+   * the anticipated decisions are in order of anticipation. i.e. the zeroeth
+   * decition is the one that we anticipate to be made next.
+   */
   readonly momentaryAnticipatedDecisionsStack = computedFn(
     (moveCount: number): IAnticipatedDecision[] => {
       if (moveCount === 0) {
@@ -598,13 +607,16 @@ export class RoundState {
               move.theater,
               previousBoardState,
               this.getAdjacentTheaters
-            ).forEach(anticipatedDecision => {
-              draftState.push(anticipatedDecision);
-            });
+            )
+              .slice()
+              .reverse()
+              .forEach(anticipatedDecision => {
+                draftState.unshift(anticipatedDecision);
+              });
             break;
           }
           case MOVE_TYPE.DECISION: {
-            draftState.pop();
+            draftState.shift();
             if (move.decision.type === DECISION_TYPE.FLIP_DECISION) {
               const previousBoardState = this.momentaryBoardState(
                 moveCount - 1
@@ -621,9 +633,12 @@ export class RoundState {
                   move.decision.theater,
                   previousBoardState,
                   this.getAdjacentTheaters
-                ).forEach(anticipatedDecision => {
-                  draftState.push(anticipatedDecision);
-                });
+                )
+                  .slice()
+                  .reverse()
+                  .forEach(anticipatedDecision => {
+                    draftState.unshift(anticipatedDecision);
+                  });
               }
             }
             break;
@@ -638,6 +653,13 @@ export class RoundState {
             });
         }
       });
+    },
+    { keepAlive: true }
+  );
+
+  readonly momentaryAnticipatedDecision = computedFn(
+    (moveCount: number): IAnticipatedDecision | null => {
+      return this.momentaryAnticipatedDecisionsStack(moveCount)[0] || null;
     },
     { keepAlive: true }
   );
@@ -1082,9 +1104,11 @@ export class RoundState {
       throw new Error('There is no decision currently anticipated');
     }
 
-    if (anticipatedDecision.player !== this.activePlayer) {
-      throw new Error('A decision from the other player was anticipated');
-    }
+    // FIXME: lol what is this? anticipatedDecition.player should _define_
+    // active player.
+    // if (anticipatedDecision.player !== this.activePlayer) {
+    //   throw new Error('A decision from the other player was anticipated');
+    // }
 
     const { decision } = move;
 
