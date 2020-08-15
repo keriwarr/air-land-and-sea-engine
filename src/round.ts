@@ -28,7 +28,7 @@ export class RoundState {
   readonly moveState = new MoveState();
 
   constructor(
-    private readonly theaterPermutation: [THEATER, THEATER, THEATER],
+    private readonly theaterPermutation: readonly [THEATER, THEATER, THEATER],
     private readonly opts: { disableHandContainsCheck?: boolean } = {},
     public readonly deck = Deck.getStandard()
   ) {}

@@ -1,17 +1,17 @@
 export const mapToObject = <T extends number | string | symbol, S>(
-  array: T[],
+  array: readonly T[],
   iteratee: (elem: T) => S
 ): { [K in T]: S } =>
   Object.assign({}, ...array.map(elem => ({ [elem]: iteratee(elem) })));
 
 export const keyBy = <T, S extends number | string | symbol>(
-  array: T[],
+  array: readonly T[],
   iteratee: (elem: T) => S
 ): { [K in S]: T } =>
   Object.assign({}, ...array.map(elem => ({ [iteratee(elem)]: elem })));
 
 export const groupBy = <T, S extends number | string | symbol>(
-  array: T[],
+  array: readonly T[],
   iteratee: (elem: T) => S
 ): { [K in S]: T[] } =>
   array.reduce((agg, elem) => {

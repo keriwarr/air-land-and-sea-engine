@@ -25,11 +25,13 @@ const descriptors = {
   SUPER_BATTLESHIP: { type: CARD_TYPE_KEY.HEAVY, theater: THEATER.SEA },
 };
 
+const DEFAULT_THEATER_ORDER = [THEATER.AIR, THEATER.LAND, THEATER.SEA] as const;
+
 describe('RoundState', () => {
   let roundState: RoundState;
 
   beforeEach(() => {
-    roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
+    roundState = new RoundState(DEFAULT_THEATER_ORDER);
   });
 
   describe('End Conditions', () => {
@@ -1080,15 +1082,215 @@ describe('RoundState', () => {
     });
 
     describe(CARD_TYPE_KEY.COVER_FIRE, () => {
-      it.todo('strengthens weak cards beneath it');
+      it('strengthens weak cards beneath it', () => {
+        roundState.allocateHands(
+          [descriptors.REINFORCE, descriptors.COVER_FIRE],
+          [descriptors.HEAVY_BOMBERS]
+        );
 
-      it.todo('strengthens flipped cards beneath it');
+        roundState.playCardDescriptor(descriptors.REINFORCE);
+        roundState.playReinforceDecision({ made: null });
 
-      it.todo('weakens strong cards beneath it');
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
 
-      it.todo('stops working when flipped over');
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
 
-      it.todo('works as expected when moved to a new theater');
+        expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
+          Array [
+            Object {
+              "ONE": 0,
+              "TWO": 6,
+              "theater": "AIR",
+            },
+            Object {
+              "ONE": 8,
+              "TWO": 0,
+              "theater": "LAND",
+            },
+            Object {
+              "ONE": 0,
+              "TWO": 0,
+              "theater": "SEA",
+            },
+          ]
+        `);
+      });
+
+      it('strengthens flipped cards beneath it', () => {
+        roundState.allocateHands(
+          [descriptors.AIR_MANEUVER, descriptors.COVER_FIRE],
+          [descriptors.HEAVY_BOMBERS]
+        );
+
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
+          faceUp: false,
+          theater: THEATER.LAND,
+        });
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+
+        expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
+          Array [
+            Object {
+              "ONE": 0,
+              "TWO": 6,
+              "theater": "AIR",
+            },
+            Object {
+              "ONE": 8,
+              "TWO": 0,
+              "theater": "LAND",
+            },
+            Object {
+              "ONE": 0,
+              "TWO": 0,
+              "theater": "SEA",
+            },
+          ]
+        `);
+      });
+
+      it('weakens strong cards beneath it', () => {
+        roundState.allocateHands(
+          [descriptors.HEAVY_TANKS, descriptors.COVER_FIRE],
+          [descriptors.HEAVY_BOMBERS]
+        );
+
+        roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+
+        expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
+          Array [
+            Object {
+              "ONE": 0,
+              "TWO": 6,
+              "theater": "AIR",
+            },
+            Object {
+              "ONE": 8,
+              "TWO": 0,
+              "theater": "LAND",
+            },
+            Object {
+              "ONE": 0,
+              "TWO": 0,
+              "theater": "SEA",
+            },
+          ]
+        `);
+      });
+
+      it('stops working when flipped over', () => {
+        roundState.allocateHands(
+          [descriptors.REINFORCE, descriptors.COVER_FIRE],
+          [descriptors.HEAVY_BOMBERS, descriptors.AIR_MANEUVER]
+        );
+
+        roundState.playCardDescriptor(descriptors.REINFORCE);
+        roundState.playReinforceDecision({ made: null });
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+        roundState.playCardDescriptor(descriptors.AIR_MANEUVER);
+        roundState.playFlipDecision({
+          targetedPlayer: PLAYER.ONE,
+          theater: THEATER.LAND,
+        });
+
+        expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
+          Array [
+            Object {
+              "ONE": 0,
+              "TWO": 9,
+              "theater": "AIR",
+            },
+            Object {
+              "ONE": 3,
+              "TWO": 0,
+              "theater": "LAND",
+            },
+            Object {
+              "ONE": 0,
+              "TWO": 0,
+              "theater": "SEA",
+            },
+          ]
+        `);
+      });
+
+      it('works as expected when moved to a new theater', () => {
+        roundState.allocateHands(
+          [
+            descriptors.REINFORCE,
+            descriptors.COVER_FIRE,
+            descriptors.TRANSPORT,
+          ],
+          [descriptors.SUPPORT, descriptors.SUPER_BATTLESHIP]
+        );
+
+        roundState.playCardDescriptor(descriptors.REINFORCE);
+        roundState.playReinforceDecision({ made: null });
+        roundState.playCardDescriptor(descriptors.SUPPORT);
+        roundState.playCardDescriptor(descriptors.COVER_FIRE);
+        roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+        roundState.playCardDescriptor(descriptors.TRANSPORT);
+        roundState.playTransportDecision({
+          made: {
+            originTheater: THEATER.LAND,
+            originIndexFromTop: 0,
+            destinationTheater: THEATER.SEA,
+          },
+        });
+
+        expect(roundState.simpleBoardState).toMatchInlineSnapshot(`
+          Object {
+            "AIR": Object {
+              "ONE": Array [],
+              "TWO": Array [
+                "AIR-Support-1",
+              ],
+            },
+            "LAND": Object {
+              "ONE": Array [
+                "LAND-Reinforce-1",
+              ],
+              "TWO": Array [],
+            },
+            "SEA": Object {
+              "ONE": Array [
+                "LAND-Cover Fire-4",
+                "SEA-Transport-1",
+              ],
+              "TWO": Array [
+                "SEA-Super Battleship-6",
+              ],
+            },
+          }
+        `);
+        expect(roundState.orderedTheaterStrengths).toMatchInlineSnapshot(`
+          Array [
+            Object {
+              "ONE": 0,
+              "TWO": 1,
+              "theater": "AIR",
+            },
+            Object {
+              "ONE": 1,
+              "TWO": 3,
+              "theater": "LAND",
+            },
+            Object {
+              "ONE": 8,
+              "TWO": 6,
+              "theater": "SEA",
+            },
+          ]
+        `);
+      });
     });
 
     describe(CARD_TYPE_KEY.DISRUPT, () => {
