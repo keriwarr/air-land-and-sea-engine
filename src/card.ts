@@ -7,6 +7,7 @@ interface ICard {
   cardTypeKey: CARD_TYPE_KEY;
   theater: THEATER;
   name?: string;
+  id?: number;
 }
 
 const STANDARD_DECK_DATA: Array<ICard> = [
@@ -167,11 +168,15 @@ export class Deck {
   public readonly cards: Readonly<Card>[];
   public readonly byId: { [id: number]: Readonly<Card> };
 
-  constructor(cardData: ICard[]) {
+  constructor(cardData: ICard[], shouldShuffle = true) {
     this.cards = cardData.map((datum, index) =>
-      Object.freeze(new Card(datum, index + 1))
+      Object.freeze(
+        new Card(datum, datum.id === undefined ? index + 1 : datum.id)
+      )
     );
-    shuffle(this.cards);
+    if (shouldShuffle) {
+      shuffle(this.cards);
+    }
     this.byId = keyBy(this.cards, card => card.id);
   }
 

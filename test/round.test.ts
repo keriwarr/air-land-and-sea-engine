@@ -62,6 +62,8 @@ describe('RoundState', () => {
         `"Can not play move: game is complete"`
       );
     });
+
+    it.todo("doesn't have a victor if a decision is anticipated");
   });
 
   describe('Cards Types', () => {

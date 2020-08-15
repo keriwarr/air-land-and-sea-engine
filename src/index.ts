@@ -118,5 +118,6 @@ export { Card, Deck } from './card';
 export { RoundState } from './round';
 export { CARD_TYPE_KEY } from './cardType';
 export { MOVE_TYPE } from './move';
-export { PLAYER } from './player';
+export { PLAYER, getOtherPlayer } from './player';
 export { THEATER, THEATERS } from './theater';
+export { DECISION_TYPE } from './decision';

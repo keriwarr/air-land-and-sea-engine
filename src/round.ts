@@ -25,12 +25,12 @@ import { THEATER, THEATERS } from './theater';
 import { CARD_TYPE_KEY } from './cardType';
 
 export class RoundState {
-  readonly deck = Deck.getStandard();
   readonly moveState = new MoveState();
 
   constructor(
     private readonly theaterPermutation: [THEATER, THEATER, THEATER],
-    private readonly opts: { disableHandContainsCheck?: boolean } = {}
+    private readonly opts: { disableHandContainsCheck?: boolean } = {},
+    public readonly deck = Deck.getStandard()
   ) {}
 
   public toJSON() {
