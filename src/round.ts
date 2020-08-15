@@ -1104,12 +1104,6 @@ export class RoundState {
       throw new Error('There is no decision currently anticipated');
     }
 
-    // FIXME: lol what is this? anticipatedDecition.player should _define_
-    // active player.
-    // if (anticipatedDecision.player !== this.activePlayer) {
-    //   throw new Error('A decision from the other player was anticipated');
-    // }
-
     const { decision } = move;
 
     if (anticipatedDecision.type !== decision.type) {
