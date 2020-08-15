@@ -65,7 +65,83 @@ describe('RoundState', () => {
       );
     });
 
-    it.todo("doesn't have a victor if a decision is anticipated");
+    // not implemented yet
+    it.skip('does not permit surrendering if a decision is anticipated', () => {
+      roundState.allocateHands([descriptors.AIR_MANEUVER]);
+
+      roundState.playCardDescriptor(descriptors.AIR_MANEUVER);
+      expect(() => {
+        roundState.surrender();
+      }).toThrowErrorMatchingInlineSnapshot();
+    });
+
+    it("doesn't permit playing a card after surrendering", () => {
+      roundState.allocateHands([], [descriptors.HEAVY_BOMBERS]);
+
+      roundState.surrender();
+
+      expect(() => {
+        roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
+      }).toThrowErrorMatchingInlineSnapshot(
+        `"Can not play move: game is complete"`
+      );
+    });
+
+    it("doesn't have a victor if a decision is anticipated", () => {
+      roundState = new RoundState([THEATER.AIR, THEATER.SEA, THEATER.LAND]);
+      roundState.allocateHands(
+        [
+          descriptors.BLOCKADE,
+          descriptors.COVER_FIRE,
+          descriptors.SUPER_BATTLESHIP,
+          descriptors.AIR_DROP,
+          descriptors.TRANSPORT,
+          descriptors.AERODROME,
+        ],
+        [
+          descriptors.HEAVY_TANKS,
+          descriptors.AMBUSH,
+          descriptors.HEAVY_BOMBERS,
+          descriptors.AIR_MANEUVER,
+          descriptors.LAND_MANEUVER,
+          descriptors.SEA_MANEUVER,
+        ]
+      );
+
+      // all face down until...
+      roundState.playCardDescriptor(descriptors.BLOCKADE, { faceUp: false });
+      roundState.playCardDescriptor(descriptors.HEAVY_TANKS, { faceUp: false });
+      roundState.playCardDescriptor(descriptors.COVER_FIRE, { faceUp: false });
+      roundState.playCardDescriptor(descriptors.AMBUSH, { faceUp: false });
+      roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP, {
+        faceUp: false,
+      });
+      roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS, {
+        faceUp: false,
+      });
+      roundState.playCardDescriptor(descriptors.AIR_DROP, { faceUp: false });
+      roundState.playCardDescriptor(descriptors.AIR_MANEUVER, {
+        faceUp: false,
+      });
+      roundState.playCardDescriptor(descriptors.TRANSPORT, { faceUp: false });
+      roundState.playCardDescriptor(descriptors.LAND_MANEUVER, {
+        faceUp: false,
+      });
+      roundState.playCardDescriptor(descriptors.AERODROME, { faceUp: false });
+      // face up maneuver!
+      roundState.playCardDescriptor(descriptors.SEA_MANEUVER);
+
+      expect(roundState.victor).toBe(null);
+      expect(roundState.complete).toBe(false);
+
+      roundState.playFlipDecision({
+        theater: THEATER.AIR,
+        targetedPlayer: PLAYER.ONE,
+      });
+
+      expect(roundState.victor).not.toBe(null);
+      expect(roundState.complete).toBe(true);
+    });
   });
 
   describe('Cards Types', () => {
@@ -246,6 +322,7 @@ describe('RoundState', () => {
         );
       });
 
+      // not implemented yet
       it.skip("doesn't override blockade", () => {
         roundState = new RoundState([THEATER.AIR, THEATER.SEA, THEATER.LAND]);
 
@@ -754,6 +831,7 @@ describe('RoundState', () => {
         );
       });
 
+      // not implemented yet
       it.skip('does not override containment', () => {
         roundState.allocateHands(
           [descriptors.CONTAINMENT],
@@ -791,6 +869,7 @@ describe('RoundState', () => {
         `);
       });
 
+      // not implemented yet
       it.skip('does not override blockade', () => {
         roundState = new RoundState([THEATER.LAND, THEATER.AIR, THEATER.SEA]);
 

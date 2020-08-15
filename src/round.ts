@@ -977,7 +977,9 @@ export class RoundState {
   @computed
   get complete() {
     return (
-      (this.currentHandP1.length === 0 && this.currentHandP2.length === 0) ||
+      (this.currentHandP1.length === 0 &&
+        this.currentHandP2.length === 0 &&
+        this.anticipatedDecision === null) ||
       !!(this.moveState.mostRecentMove?.type === MOVE_TYPE.SURRENDER)
     );
   }
@@ -989,7 +991,7 @@ export class RoundState {
     }
 
     if (this.moveState.mostRecentMove?.type === MOVE_TYPE.SURRENDER) {
-      return getOtherPlayer(this.momentaryActivePlayer(this.numMoves - 1));
+      return this.activePlayer;
     }
 
     return this.momentaryTheatersControlled(this.numMoves, PLAYER.ONE) >= 2
