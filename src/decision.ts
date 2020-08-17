@@ -1,8 +1,7 @@
 import { PLAYER, getOtherPlayer } from './player';
 import { THEATER } from './theater';
 import { CARD_TYPE_KEY } from './cardType';
-import { IBoardState } from './board';
-import { enumValues } from './utils';
+import { IBoardState } from 'board';
 
 export enum DECISION_TYPE {
   FLIP_DECISION = 'FLIP_DECISION',
@@ -15,41 +14,71 @@ interface IGenericDecision<T extends DECISION_TYPE = DECISION_TYPE> {
   type: T;
 }
 
-export interface IFlipDecision
-  extends IGenericDecision<DECISION_TYPE.FLIP_DECISION> {
+interface IOptionalDecision<T> {
+  made: T | null;
+}
+
+interface IFlipDescription {
   targetedPlayer: PLAYER;
   theater: THEATER;
 }
+
+interface IReinforceDescription {
+  theater: THEATER;
+}
+
+interface ITransportDescription {
+  originTheater: THEATER;
+  originIndexFromTop: number;
+  destinationTheater: THEATER;
+}
+interface IRedeployDescription {
+  theater: THEATER;
+  indexFromTop: number;
+}
+
+export interface IFlipDecision
+  extends IGenericDecision<DECISION_TYPE.FLIP_DECISION>,
+    IFlipDescription {}
+
 export interface IReinforceDecision
-  extends IGenericDecision<DECISION_TYPE.REINFORCE_DECISION> {
-  made: {
-    theater: THEATER;
-  } | null;
-}
+  extends IGenericDecision<DECISION_TYPE.REINFORCE_DECISION>,
+    IOptionalDecision<IReinforceDescription> {}
+
 export interface ITransportDecision
-  extends IGenericDecision<DECISION_TYPE.TRANSPORT_DECISION> {
-  made: {
-    originTheater: THEATER;
-    originIndexFromTop: number;
-    destinationTheater: THEATER;
-  } | null;
-}
+  extends IGenericDecision<DECISION_TYPE.TRANSPORT_DECISION>,
+    IOptionalDecision<ITransportDescription> {}
+
 export interface IRedeployDecision
-  extends IGenericDecision<DECISION_TYPE.REDEPLOY_DECISION> {
-  made: {
-    theater: THEATER;
-    indexFromTop: number;
-  };
-}
+  extends IGenericDecision<DECISION_TYPE.REDEPLOY_DECISION>,
+    IOptionalDecision<IRedeployDescription> {}
 
-export type IDecision =
-  | IFlipDecision
-  | IReinforceDecision
-  | ITransportDecision
-  | IRedeployDecision;
+export type IDecisionDescription<
+  T extends DECISION_TYPE = DECISION_TYPE
+> = T extends DECISION_TYPE.FLIP_DECISION
+  ? IFlipDescription
+  : T extends DECISION_TYPE.REINFORCE_DECISION
+  ? IReinforceDescription
+  : T extends DECISION_TYPE.TRANSPORT_DECISION
+  ? ITransportDescription
+  : T extends DECISION_TYPE.REDEPLOY_DECISION
+  ? IRedeployDescription
+  : never;
 
-export interface IAnticipatedDecision {
-  type: DECISION_TYPE;
+export type IDecision<
+  T extends DECISION_TYPE = DECISION_TYPE
+> = T extends DECISION_TYPE.FLIP_DECISION
+  ? IFlipDecision
+  : T extends DECISION_TYPE.REINFORCE_DECISION
+  ? IReinforceDecision
+  : T extends DECISION_TYPE.TRANSPORT_DECISION
+  ? ITransportDecision
+  : T extends DECISION_TYPE.REDEPLOY_DECISION
+  ? IRedeployDecision
+  : never;
+
+export interface IAnticipatedDecision<T extends DECISION_TYPE = DECISION_TYPE> {
+  type: T;
   player: PLAYER;
   promptingMoveIndex: number;
 }
@@ -61,32 +90,32 @@ export interface IAnticipatedDecision {
 export const getAnticipatedDecisions = (
   cardTypeKey: CARD_TYPE_KEY,
   player: PLAYER,
-  promptingMoveIndex: number,
-  playedTheater: THEATER,
-  boardState: IBoardState,
-  getAdjacentTheaters: (theater: THEATER) => THEATER[]
+  promptingMoveIndex: number
 ): IAnticipatedDecision[] => {
   const anticipatedTypeAndPlayers = (() => {
     switch (cardTypeKey) {
       case CARD_TYPE_KEY.REINFORCE:
-        return [{ type: DECISION_TYPE.REINFORCE_DECISION, player }];
-      case CARD_TYPE_KEY.AMBUSH:
-        return [{ type: DECISION_TYPE.FLIP_DECISION, player }];
+        return [
+          {
+            type: DECISION_TYPE.REINFORCE_DECISION,
+            player,
+          },
+        ];
+      case CARD_TYPE_KEY.AMBUSH: {
+        return [
+          {
+            type: DECISION_TYPE.FLIP_DECISION,
+            player,
+          },
+        ];
+      }
       case CARD_TYPE_KEY.MANEUVER: {
-        const adjacentTheaters = getAdjacentTheaters(playedTheater);
-        const adjacentPlayerTheaters = adjacentTheaters
-          .map(theater =>
-            enumValues(PLAYER).map(player => boardState[theater][player])
-          )
-          .reduce((flat, playerTheaters) => [...flat, ...playerTheaters], []);
-        if (
-          !adjacentPlayerTheaters.find(
-            adjacentPlayerTheater => adjacentPlayerTheater.length > 0
-          )
-        ) {
-          return [];
-        }
-        return [{ type: DECISION_TYPE.FLIP_DECISION, player }];
+        return [
+          {
+            type: DECISION_TYPE.FLIP_DECISION,
+            player,
+          },
+        ];
       }
       case CARD_TYPE_KEY.DISRUPT:
         return [
@@ -97,12 +126,6 @@ export const getAnticipatedDecisions = (
           { type: DECISION_TYPE.FLIP_DECISION, player },
         ];
       case CARD_TYPE_KEY.REDEPLOY: {
-        const playerCardStates = enumValues(THEATER)
-          .map(theater => boardState[theater][player])
-          .reduce((flat, cardStates) => [...flat, ...cardStates], []);
-        if (!playerCardStates.find(cardState => !cardState.faceUp)) {
-          return [];
-        }
         return [{ type: DECISION_TYPE.REDEPLOY_DECISION, player }];
       }
       case CARD_TYPE_KEY.TRANSPORT:
@@ -116,4 +139,14 @@ export const getAnticipatedDecisions = (
     ...typeAndPlayer,
     promptingMoveIndex: promptingMoveIndex,
   }));
+};
+
+export const getOptionsForDecision = <T extends DECISION_TYPE>(
+  decisionType: T,
+  player: PLAYER,
+  playedTheater: THEATER,
+  boardState: IBoardState,
+  getAdjacentTheaters: (theater: THEATER) => THEATER[]
+): IDecisionDescription<T>[] => {
+  return [];
 };

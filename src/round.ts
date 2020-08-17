@@ -20,6 +20,7 @@ import {
   IReinforceDecision,
   ITransportDecision,
   IRedeployDecision,
+  getOptionsForDecision,
 } from './decision';
 import { THEATER, THEATERS } from './theater';
 import { CARD_TYPE_KEY } from './cardType';
@@ -135,6 +136,9 @@ export class RoundState {
             const { decision } = move;
             switch (decision.type) {
               case DECISION_TYPE.REDEPLOY_DECISION: {
+                if (!decision.made) {
+                  break;
+                }
                 const previousBoardState = this.momentaryBoardState(
                   moveCount - 1
                 );
@@ -249,6 +253,9 @@ export class RoundState {
                 break;
               }
               case DECISION_TYPE.REDEPLOY_DECISION: {
+                if (!decision.made) {
+                  break;
+                }
                 draftState[decision.made.theater][player].splice(
                   decision.made.indexFromTop,
                   1
@@ -598,16 +605,7 @@ export class RoundState {
               break;
             }
 
-            const previousBoardState = this.momentaryBoardState(moveCount - 1);
-
-            getAnticipatedDecisions(
-              card.cardTypeKey,
-              player,
-              moveCount - 1,
-              move.theater,
-              previousBoardState,
-              this.getAdjacentTheaters
-            )
+            getAnticipatedDecisions(card.cardTypeKey, player, moveCount - 1)
               .slice()
               .reverse()
               .forEach(anticipatedDecision => {
@@ -629,10 +627,7 @@ export class RoundState {
                 getAnticipatedDecisions(
                   flippedCardState.card.cardTypeKey,
                   move.decision.targetedPlayer,
-                  moveCount - 1,
-                  move.decision.theater,
-                  previousBoardState,
-                  this.getAdjacentTheaters
+                  moveCount - 1
                 )
                   .slice()
                   .reverse()
@@ -651,6 +646,25 @@ export class RoundState {
               switchValue: move,
               errorMessage: `Unrecognized move: ${JSON.stringify(move)}`,
             });
+        }
+
+        while (true) {
+          // TODO: get a list of valid options based on the current board state.
+          // If there are no options, shift the zeroth decision out and repeat.
+          // right now a flip decision doesn't actually encode enough
+          // information for us to know which options are available (maneuver vs
+          // ambush vs disrupt). To remmedy I think we could augment the flip
+          // decision with information about which player's/theater's cards are
+          // valid targets when the decision is added to the stack
+
+          const nextDecision = draftState[0];
+          const optionsForNextDecision = getOptionsForDecision(
+            nextDecision.type,
+            nextDecision.player,
+            move.theater,
+            previousBoardState,
+            this.getAdjacentTheaters
+          );
         }
       });
     },
@@ -743,6 +757,10 @@ export class RoundState {
         return previousState;
       }
 
+      if (!move.decision.made) {
+        return previousState;
+      }
+
       const previousBoardState = this.momentaryBoardState(moveCount - 1);
 
       const cardState =
@@ -800,6 +818,9 @@ export class RoundState {
                 break;
               }
               case DECISION_TYPE.REDEPLOY_DECISION: {
+                if (!decision.made) {
+                  break;
+                }
                 const previousBoardState = this.momentaryBoardState(
                   moveCount - 1
                 );

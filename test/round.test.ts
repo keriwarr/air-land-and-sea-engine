@@ -1686,7 +1686,20 @@ describe('RoundState', () => {
     });
 
     describe(CARD_TYPE_KEY.TRANSPORT, () => {
-      it.todo('moves a card');
+      // it('moves a card', () => {
+      //   roundState.allocateHands(
+      //     [descriptors.HEAVY_TANKS, descriptors.TRANSPORT],
+      //     [descriptors.SUPER_BATTLESHIP]
+      //   );
+
+      //   roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
+      //   roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+      //   roundState.playCardDescriptor(descriptors.TRANSPORT);
+
+      //   roundState.playTransportDecision({
+      //     made: {},
+      //   });
+      // });
 
       it.todo('can move face down cards');
 
