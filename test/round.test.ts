@@ -1765,29 +1765,7 @@ describe('RoundState', () => {
   });
 
   describe('Move Validation', () => {
-    let roundState: RoundState;
-
-    beforeEach(() => {
-      roundState = new RoundState([THEATER.AIR, THEATER.LAND, THEATER.SEA]);
-    });
-
-    it("prevents playing cards that are not in the player's hand", () => {
-      expect(() => {
-        roundState.playCard(roundState.currentHandP2[0].getMove(), {
-          dryRun: true,
-        });
-      }).toThrowErrorMatchingInlineSnapshot(
-        `"Played card was not found in active players hand"`
-      );
-
-      // TODO - I'd like to test this case too, but I'd need a way to
-      // conveniently play whatever decisions are necessary after playing p1's
-      // first card.
-      // roundState.playCard(roundState.currentHandP1[0].getMove());
-      // expect(() => {
-      //   roundState.playCard(roundState.currentHandP1[0].getMove());
-      // }).toThrowErrorMatchingInlineSnapshot();
-    });
+    it.todo("prevents playing cards that are not in the player's hand");
 
     it.todo('prevents playing cards face up to non-matching theaters');
 
@@ -1800,10 +1778,6 @@ describe('RoundState', () => {
     it.todo('prevents make a decision when none is anticipated');
 
     it.todo('prevents making a decision of the incorrect type');
-
-    it.todo(
-      'prevents making a decision of the correct type but from the incorrect player'
-    );
 
     it.todo('prevents playing cards once a player has surrendered');
   });
