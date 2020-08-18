@@ -142,6 +142,12 @@ export class Card {
     };
   }
 
+  public toString(faceUp: boolean = true) {
+    return `${this.theater}-${this.name}-${this.rank}${
+      faceUp ? '' : ' (flipped)'
+    }`;
+  }
+
   readonly getMove = ({
     faceUp = true,
     theater = this.theater,
@@ -166,6 +172,7 @@ export interface ICardDescriptor {
 export class Deck {
   @observable
   public readonly cards: Readonly<Card>[];
+  public readonly cardsOrderedById: Readonly<Card>[];
   public readonly byId: { [id: number]: Readonly<Card> };
 
   constructor(cardData: ICard[], shouldShuffle = true) {
@@ -174,6 +181,9 @@ export class Deck {
         new Card(datum, datum.id === undefined ? index + 1 : datum.id)
       )
     );
+    this.cardsOrderedById = this.cards
+      .slice()
+      .sort((cardA, cardB) => cardA.id - cardB.id);
     if (shouldShuffle) {
       shuffle(this.cards);
     }

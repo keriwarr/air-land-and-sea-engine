@@ -525,12 +525,7 @@ export class RoundState {
   public get simpleBoardState(): IBoardState<string[]> {
     return mapValues(this.boardState, theater =>
       mapValues(theater, cards =>
-        cards.map(
-          ({ card, faceUp }) =>
-            `${card.theater}-${card.name}-${card.rank}${
-              faceUp ? '' : ' (flipped)'
-            }`
-        )
+        cards.map(({ card, faceUp }) => card.toString(faceUp))
       )
     );
   }
@@ -995,6 +990,118 @@ export class RoundState {
   readonly theaterEffects = computedFn((theater: THEATER) => {
     return this.momentaryTheaterEffects(this.numMoves, theater);
   });
+
+  readonly momentarySeenCardsForPlayer = computedFn(
+    (moveCount: number, player: PLAYER): Readonly<Card>[] => {
+      if (moveCount === 0) {
+        return this.momentaryHand(0, player);
+      }
+
+      const move = this.moveState.getMove(moveCount - 1);
+      const playerForMove = this.momentaryActivePlayer(moveCount - 1);
+      const previousState = this.momentarySeenCardsForPlayer(
+        moveCount - 1,
+        player
+      );
+
+      if (move === null) {
+        return previousState;
+      }
+
+      return produce(previousState, draftState => {
+        switch (move.type) {
+          case MOVE_TYPE.CARD: {
+            const playedCard = this.deck.byId[move.id];
+            if (move.faceUp) {
+              draftState.push(playedCard);
+            }
+            if (
+              playerForMove === player &&
+              playedCard.cardTypeKey === CARD_TYPE_KEY.REINFORCE
+            ) {
+              const deck = this.momentaryDeck(moveCount - 1);
+              // player looks at the top card of the battle deck
+              draftState.push(deck[0]);
+            }
+            break;
+          }
+          case MOVE_TYPE.DECISION: {
+            const { decision } = move;
+            switch (decision.type) {
+              case DECISION_TYPE.FLIP_DECISION: {
+                const boardState = this.momentaryBoardState(moveCount - 1);
+                const targetedCard =
+                  boardState[decision.theater][decision.targetedPlayer][0];
+
+                // If it was face down before...
+                if (!targetedCard.faceUp) {
+                  // Then mark it as seen
+                  draftState.push(targetedCard.card);
+                }
+                break;
+              }
+              case DECISION_TYPE.REINFORCE_DECISION:
+              case DECISION_TYPE.REDEPLOY_DECISION:
+              case DECISION_TYPE.TRANSPORT_DECISION:
+                break;
+              default:
+                exhaustiveSwitch({
+                  switchValue: decision,
+                  errorMessage: `Unrecognized decision: ${JSON.stringify(
+                    decision
+                  )}`,
+                });
+            }
+            break;
+          }
+          case MOVE_TYPE.SURRENDER:
+            break;
+          default:
+            exhaustiveSwitch({
+              switchValue: move,
+              errorMessage: `Unrecognized move: ${JSON.stringify(move)}`,
+            });
+        }
+      });
+    }
+  );
+
+  readonly momentaryUnseenCardsForPlayer = computedFn(
+    (moveCount: number, player: PLAYER): Readonly<Card>[] => {
+      const seenCardsForPlayer = this.momentarySeenCardsForPlayer(
+        moveCount,
+        player
+      );
+
+      const seenCardIds = new Set();
+
+      seenCardsForPlayer.forEach(seenCard => {
+        seenCardIds.add(seenCard.id);
+      });
+
+      return this.deck.cardsOrderedById.filter(
+        card => !seenCardIds.has(card.id)
+      );
+    },
+    { keepAlive: true }
+  );
+
+  @computed
+  get currentUnseenCardsP1() {
+    return this.momentaryUnseenCardsForPlayer(this.numMoves, PLAYER.ONE);
+  }
+
+  @computed
+  get currentUnseenCardsP2() {
+    return this.momentaryUnseenCardsForPlayer(this.numMoves, PLAYER.TWO);
+  }
+
+  @computed
+  get currentUnseenCards() {
+    return this.activePlayer === PLAYER.ONE
+      ? this.currentHandP1
+      : this.currentHandP2;
+  }
 
   @computed
   get complete() {

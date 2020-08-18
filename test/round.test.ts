@@ -1820,8 +1820,6 @@ describe('RoundState', () => {
     it.todo("doesn't trigger instant effects");
 
     it.todo('allows instant effects to be triggered when flipped up');
-
-    it.todo('keeps track of whether the opponent has seen which card it is');
   });
 
   describe('Hand', () => {
@@ -2086,6 +2084,158 @@ describe('RoundState', () => {
       });
 
       expect(roundState.toJSON()).toMatchSnapshot();
+    });
+  });
+
+  // Concerning the feature which tracks whether a given card has been observed
+  // by a given player at any point in the round.
+  //
+  // See RoundState.prototype.momentarySeenCardsForPlayer;
+  describe('Seen Cards', () => {
+    it("marks each player's stating hand as seen", () => {
+      roundState.allocateHands(
+        [
+          descriptors.BLOCKADE,
+          descriptors.COVER_FIRE,
+          descriptors.SUPER_BATTLESHIP,
+          descriptors.AIR_DROP,
+          descriptors.TRANSPORT,
+          descriptors.AERODROME,
+        ],
+        [
+          descriptors.HEAVY_TANKS,
+          descriptors.AMBUSH,
+          descriptors.HEAVY_BOMBERS,
+          descriptors.AIR_MANEUVER,
+          descriptors.LAND_MANEUVER,
+          descriptors.CONTAINMENT,
+        ]
+      );
+
+      expect(roundState.currentUnseenCardsP1.map(card => card.toString()))
+        .toMatchInlineSnapshot(`
+        Array [
+          "AIR-Support-1",
+          "AIR-Maneuver-3",
+          "AIR-Containment-5",
+          "AIR-Heavy Bombers-6",
+          "LAND-Reinforce-1",
+          "LAND-Ambush-2",
+          "LAND-Maneuver-3",
+          "LAND-Disrupt-5",
+          "LAND-Heavy Tanks-6",
+          "SEA-Escalation-2",
+          "SEA-Maneuver-3",
+          "SEA-Redeploy-4",
+        ]
+      `);
+
+      expect(roundState.currentUnseenCardsP2.map(card => card.toString()))
+        .toMatchInlineSnapshot(`
+        Array [
+          "AIR-Support-1",
+          "AIR-Air Drop-2",
+          "AIR-Aerodrome-4",
+          "LAND-Reinforce-1",
+          "LAND-Cover Fire-4",
+          "LAND-Disrupt-5",
+          "SEA-Transport-1",
+          "SEA-Escalation-2",
+          "SEA-Maneuver-3",
+          "SEA-Redeploy-4",
+          "SEA-Blockade-5",
+          "SEA-Super Battleship-6",
+        ]
+      `);
+    });
+
+    it('marks played cards as seen', () => {
+      roundState.allocateHands([descriptors.SUPER_BATTLESHIP]);
+
+      expect(
+        roundState.currentUnseenCardsP2.includes(
+          roundState.deck.find(descriptors.SUPER_BATTLESHIP)
+        )
+      ).toBe(true);
+
+      roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
+
+      expect(
+        roundState.currentUnseenCardsP2.includes(
+          roundState.deck.find(descriptors.SUPER_BATTLESHIP)
+        )
+      ).toBe(false);
+    });
+
+    it('does not mark cards played face down as seen', () => {
+      roundState.allocateHands([descriptors.SUPER_BATTLESHIP]);
+
+      expect(
+        roundState.currentUnseenCardsP2.includes(
+          roundState.deck.find(descriptors.SUPER_BATTLESHIP)
+        )
+      ).toBe(true);
+
+      roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP, {
+        faceUp: false,
+      });
+
+      expect(
+        roundState.currentUnseenCardsP2.includes(
+          roundState.deck.find(descriptors.SUPER_BATTLESHIP)
+        )
+      ).toBe(true);
+    });
+
+    it('marks cards flipped face up as seen', () => {
+      roundState.allocateHands(
+        [descriptors.SUPER_BATTLESHIP],
+        [descriptors.LAND_MANEUVER]
+      );
+
+      roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP, {
+        faceUp: false,
+      });
+      roundState.playCardDescriptor(descriptors.LAND_MANEUVER);
+
+      expect(
+        roundState.currentUnseenCardsP2.includes(
+          roundState.deck.find(descriptors.SUPER_BATTLESHIP)
+        )
+      ).toBe(true);
+
+      roundState.playFlipDecision({
+        targetedPlayer: PLAYER.ONE,
+        theater: THEATER.SEA,
+      });
+
+      expect(
+        roundState.currentUnseenCardsP2.includes(
+          roundState.deck.find(descriptors.SUPER_BATTLESHIP)
+        )
+      ).toBe(false);
+    });
+
+    it('marks cards observed with reinforce as seen', () => {
+      roundState.allocateHands(
+        [descriptors.REINFORCE],
+        [],
+        [descriptors.SUPPORT]
+      );
+
+      expect(
+        roundState.currentUnseenCardsP1.includes(
+          roundState.deck.find(descriptors.SUPPORT)
+        )
+      ).toBe(true);
+
+      roundState.playCardDescriptor(descriptors.REINFORCE);
+
+      expect(
+        roundState.currentUnseenCardsP1.includes(
+          roundState.deck.find(descriptors.SUPPORT)
+        )
+      ).toBe(false);
     });
   });
 });
