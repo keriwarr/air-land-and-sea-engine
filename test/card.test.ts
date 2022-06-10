@@ -56,7 +56,7 @@ describe('Deck', () => {
 
   it('can find all of the cards', () => {
     const deck = Deck.getStandard();
-    enumValues(THEATER).forEach(theater => {
+    THEATERS.forEach(theater => {
       [1, 2, 3, 4, 5, 6].forEach(rank => {
         deck.find({ theater, rank });
       });

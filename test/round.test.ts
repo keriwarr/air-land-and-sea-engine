@@ -646,7 +646,7 @@ describe('RoundState', () => {
         roundState.playCardDescriptor(descriptors.HEAVY_BOMBERS);
 
         [1, 2, 3].forEach(rank => {
-          enumValues(THEATER).forEach(theater => {
+          THEATERS.forEach(theater => {
             roundState.playCardDescriptor(
               {
                 rank,
@@ -663,7 +663,7 @@ describe('RoundState', () => {
         roundState.playCardDescriptor(descriptors.AERODROME);
 
         [1, 2, 3].forEach(rank => {
-          enumValues(THEATER).forEach(theater => {
+          THEATERS.forEach(theater => {
             expect(() => {
               roundState.playCardDescriptor(
                 {
@@ -685,7 +685,7 @@ describe('RoundState', () => {
         roundState.playCardDescriptor(descriptors.SUPPORT);
 
         [4, 5, 6].forEach(rank => {
-          enumValues(THEATER).forEach(theater => {
+          THEATERS.forEach(theater => {
             expect(() => {
               roundState.playCardDescriptor(
                 { rank, theater },
@@ -704,7 +704,7 @@ describe('RoundState', () => {
         roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
 
         [1, 2, 3].forEach(rank => {
-          enumValues(THEATER).forEach(theater => {
+          THEATERS.forEach(theater => {
             roundState.playCardDescriptor(
               { rank, theater },
               { theater: getDifferentTheater(theater) },
@@ -723,7 +723,7 @@ describe('RoundState', () => {
         });
 
         [1, 2, 3].forEach(rank => {
-          enumValues(THEATER).forEach(theater => {
+          THEATERS.forEach(theater => {
             expect(() => {
               roundState.playCardDescriptor(
                 { rank, theater },
@@ -753,7 +753,7 @@ describe('RoundState', () => {
         roundState.playCardDescriptor(descriptors.HEAVY_TANKS);
 
         [1, 2, 3].forEach(rank => {
-          enumValues(THEATER).forEach(theater => {
+          THEATERS.forEach(theater => {
             roundState.playCardDescriptor(
               { rank, theater },
               { theater: getDifferentTheater(theater) },
@@ -1485,7 +1485,7 @@ describe('RoundState', () => {
         roundState.playCardDescriptor(descriptors.SUPER_BATTLESHIP);
         roundState.playCardDescriptor(descriptors.DISRUPT);
 
-        enumValues(THEATER).forEach(theater => {
+        THEATERS.forEach(theater => {
           expect(() => {
             roundState.playFlipDecision(
               {
@@ -1617,7 +1617,7 @@ describe('RoundState', () => {
           theater: THEATER.AIR,
         });
 
-        enumValues(THEATER).forEach(theater => {
+        THEATERS.forEach(theater => {
           expect(() => {
             roundState.playFlipDecision(
               {

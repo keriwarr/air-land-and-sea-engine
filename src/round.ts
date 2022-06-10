@@ -30,7 +30,10 @@ export class RoundState {
 
   constructor(
     private readonly theaterPermutation: readonly [THEATER, THEATER, THEATER],
-    private readonly opts: { disableHandContainsCheck?: boolean } = {},
+    private readonly opts: {
+      disableHandContainsCheck?: boolean;
+      disableAutoPlayOnlyDecision?: boolean;
+    } = {},
     public readonly deck = Deck.getStandard()
   ) {}
 
@@ -600,15 +603,22 @@ export class RoundState {
       return produce(previousState, draftState => {
         switch (move.type) {
           case MOVE_TYPE.CARD: {
-            const card = this.deck.byId[move.id];
             if (!move.faceUp) {
               break;
             }
 
-            getAnticipatedDecisions(card.cardTypeKey, player, moveCount - 1)
+            const card = this.deck.byId[move.id];
+            const adjacentTheaters = this.getAdjacentTheaters(move.theater);
+
+            getAnticipatedDecisions(
+              card.cardTypeKey,
+              player,
+              moveCount - 1,
+              adjacentTheaters
+            )
               .slice()
               .reverse()
-              .forEach(anticipatedDecision => {
+              .forEach((anticipatedDecision: IAnticipatedDecision) => {
                 draftState.unshift(anticipatedDecision);
               });
             break;
@@ -624,14 +634,18 @@ export class RoundState {
                   move.decision.targetedPlayer
                 ][0];
               if (flippedCardState && !flippedCardState.faceUp) {
+                const adjacentTheaters = this.getAdjacentTheaters(
+                  move.decision.theater
+                );
                 getAnticipatedDecisions(
                   flippedCardState.card.cardTypeKey,
                   move.decision.targetedPlayer,
-                  moveCount - 1
+                  moveCount - 1,
+                  adjacentTheaters
                 )
                   .slice()
                   .reverse()
-                  .forEach(anticipatedDecision => {
+                  .forEach((anticipatedDecision: IAnticipatedDecision) => {
                     draftState.unshift(anticipatedDecision);
                   });
               }
